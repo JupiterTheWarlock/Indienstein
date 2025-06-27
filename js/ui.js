@@ -10,11 +10,9 @@ const UI = {
     // 状态变量
     state: {
         isGenerating: false,
-        isBatchGenerating: false,
         selectedDimensions: [],
         currentSelectedVectors: {},
-        currentResult: null,
-        batchResults: [],
+        allGeneratedResults: [], // 存储所有生成的结果
         currentBatchIndex: -1
     },
     
@@ -28,6 +26,7 @@ const UI = {
         this.setupOverviewPage();
         this.setupInfoSpacePage();
         this.loadIndiensteinSettings(); // 加载Indienstein页面的临时设置
+        this.updateModelOptions(); // 初始化模型选项
         this.updateGenerateButton();
         
         // 确保默认配置正确
@@ -59,13 +58,10 @@ const UI = {
         this.elements.exportBtn = document.getElementById('exportBtn');
         this.elements.clearResultBtn = document.getElementById('clearResultBtn');
         
-        // 批量生成
+        // 生成配置
         this.elements.batchCount = document.getElementById('batchCount');
         this.elements.batchDelay = document.getElementById('batchDelay');
-        this.elements.batchGenerateBtn = document.getElementById('batchGenerateBtn');
         this.elements.batchProgress = document.getElementById('batchProgress');
-        this.elements.batchResults = document.getElementById('batchResults');
-        this.elements.exportBatchBtn = document.getElementById('exportBatchBtn');
         
         // 总览页面
         this.elements.providersContainer = document.getElementById('providersContainer');
@@ -88,6 +84,21 @@ const UI = {
         // 调试信息
         this.elements.debugInfo = document.getElementById('debugInfo');
         this.elements.clearDebugBtn = document.getElementById('clearDebugBtn');
+        
+        // 检查关键元素是否存在
+        const requiredElements = [
+            'dimensionsList', 'generateBtn', 'resultContent', 'batchProgress',
+            'providerSelect', 'modelSelect', 'temperatureInput', 'maxTokensInput'
+        ];
+        
+        for (const elementName of requiredElements) {
+            if (!this.elements[elementName]) {
+                console.error(`关键DOM元素缺失: ${elementName}`);
+                throw new Error(`缺少必需的DOM元素: ${elementName}`);
+            }
+        }
+        
+        console.log('UI: DOM元素缓存完成');
     },
     
     /**
@@ -115,12 +126,11 @@ const UI = {
         // 生成区域
         this.elements.randomBtn.addEventListener('click', () => this.randomSelectVectors());
         this.elements.generateBtn.addEventListener('click', () => this.generateInspiration());
-        this.elements.exportBtn.addEventListener('click', () => this.exportInspiration());
+        this.elements.exportBtn.addEventListener('click', () => this.exportAllResults());
         this.elements.clearResultBtn.addEventListener('click', () => this.clearResult());
         
-        // 批量生成
-        this.elements.batchGenerateBtn.addEventListener('click', () => this.startBatchGeneration());
-        this.elements.exportBatchBtn.addEventListener('click', () => this.exportBatchInspirations());
+        // 批量生成配置（现在作为生成参数）
+        // 移除批量生成按钮事件，因为现在统一使用生成按钮
         
         // Indienstein页面AI配置设置（临时的，不保存）
         this.elements.providerSelect.addEventListener('change', () => {
@@ -241,11 +251,10 @@ const UI = {
      * 更新生成按钮状态
      */
     updateGenerateButton() {
-        const hasSelectedVectors = Object.keys(this.state.currentSelectedVectors).length > 0;
         const hasSelectedDimensions = this.state.selectedDimensions.length > 0;
         
-        this.elements.generateBtn.disabled = this.state.isGenerating || !hasSelectedVectors;
-        this.elements.batchGenerateBtn.disabled = this.state.isBatchGenerating || !hasSelectedDimensions;
+        this.elements.generateBtn.disabled = this.state.isGenerating || !hasSelectedDimensions;
+        this.elements.randomBtn.disabled = this.state.isGenerating || this.state.selectedDimensions.length === 0;
     },
     
     /**
@@ -257,7 +266,8 @@ const UI = {
             return;
         }
         
-        this.state.currentSelectedVectors = IndiensteinService.selectFromDimensionIds(this.state.selectedDimensions);
+        const selectedVectors = InfoSpace.selectFromDimensions(this.state.selectedDimensions);
+        this.state.currentSelectedVectors = selectedVectors;
         this.displaySelectedVectors();
         this.updateGenerateButton();
     },
@@ -290,135 +300,10 @@ const UI = {
     },
     
     /**
-     * 生成灵感
+     * 生成灵感（现在统一使用批量生成逻辑）
      */
     async generateInspiration() {
         if (this.state.isGenerating) return;
-        
-        const selectedVectors = this.state.currentSelectedVectors;
-        if (Object.keys(selectedVectors).length === 0) {
-            this.showMessage('请先随机选择向量', 'warning');
-            return;
-        }
-        
-        // 检查API设置
-        if (!this.checkApiSettings()) {
-            return;
-        }
-        
-        this.state.isGenerating = true;
-        this.elements.generateBtn.disabled = true;
-        this.elements.generateBtn.innerHTML = '<span class="loading-spinner me-1"></span> 生成中...';
-        
-        // 检查是否是第一次生成
-        const isFirstGeneration = this.elements.resultContent.innerHTML.includes('生成的内容将显示在这里');
-        if (!isFirstGeneration) {
-            // 添加分隔线
-            this.elements.resultContent.innerHTML += '\n\n--- 新的生成 ---\n\n';
-        } else {
-            // 清空初始提示
-            this.elements.resultContent.innerHTML = '';
-        }
-        
-        this.elements.resultContent.classList.add('generating');
-        
-        const userPrompt = this.elements.userPrompt.value;
-        
-        // 记录生成开始
-        this.addDebugInfo('开始生成灵感', 'log');
-        this.logApiRequest({
-            provider: AIService.currentSettings.provider,
-            model: AIService.currentSettings.model,
-            messageCount: 1
-        });
-        
-        try {
-            const result = await IndiensteinService.generateInspirationStream(
-                selectedVectors,
-                userPrompt,
-                (content) => {
-                    // 实时累加内容
-                    if (this.elements.resultContent.classList.contains('generating')) {
-                        // 移除之前的打字动画
-                        const existingAnimation = this.elements.resultContent.querySelector('.typing-animation');
-                        if (existingAnimation) {
-                            existingAnimation.remove();
-                        }
-                        // 累加新内容
-                        this.elements.resultContent.innerHTML += content;
-                        // 添加新的打字动画
-                        this.elements.resultContent.innerHTML += '<span class="typing-animation"></span>';
-                    } else {
-                        this.elements.resultContent.innerHTML += content;
-                    }
-                    // 自动滚动到底部
-                    this.elements.resultContent.scrollTop = this.elements.resultContent.scrollHeight;
-                },
-                (finalContent) => {
-                    // 完成回调
-                    this.elements.resultContent.classList.remove('generating');
-                    // 移除打字动画
-                    const existingAnimation = this.elements.resultContent.querySelector('.typing-animation');
-                    if (existingAnimation) {
-                        existingAnimation.remove();
-                    }
-                    this.elements.exportBtn.disabled = false;
-                    this.addDebugInfo('灵感生成完成', 'log');
-                    // 滚动到底部
-                    this.elements.resultContent.scrollTop = this.elements.resultContent.scrollHeight;
-                },
-                (error) => {
-                    // 错误回调
-                    this.elements.resultContent.classList.remove('generating');
-                    this.elements.resultContent.innerHTML = `<div class="text-danger">生成失败: ${error}</div>`;
-                    this.logApiError(error);
-                }
-            );
-            
-            if (result) {
-                this.state.currentResult = result;
-                
-                // 保存到本地存储
-                StorageService.saveInspiration(result);
-            }
-        } catch (error) {
-            console.error('生成灵感失败:', error);
-            this.elements.resultContent.innerHTML = `<div class="text-danger">生成失败: ${error.message}</div>`;
-            this.logApiError(`生成异常: ${error.message}`);
-        } finally {
-            this.state.isGenerating = false;
-            this.elements.generateBtn.disabled = false;
-            this.elements.generateBtn.innerHTML = '<i class="bi bi-stars"></i> 生成灵感';
-        }
-    },
-    
-    /**
-     * 导出当前灵感
-     */
-    exportInspiration() {
-        if (!this.state.currentResult) return;
-        
-        StorageService.exportInspirationAsText(
-            this.state.currentResult,
-            `游戏灵感_${new Date().toISOString().slice(0, 10)}.txt`
-        );
-    },
-    
-    /**
-     * 清空生成结果
-     */
-    clearResult() {
-        this.elements.resultContent.innerHTML = '<div class="text-center text-muted">生成的内容将显示在这里</div>';
-        this.elements.exportBtn.disabled = true;
-        this.state.currentResult = null;
-        this.showMessage('已清空生成历史', 'success');
-    },
-    
-    /**
-     * 开始批量生成
-     */
-    async startBatchGeneration() {
-        if (this.state.isBatchGenerating) return;
         
         if (this.state.selectedDimensions.length === 0) {
             this.showMessage('请先选择至少一个维度', 'warning');
@@ -430,21 +315,18 @@ const UI = {
             return;
         }
         
-        const count = parseInt(this.elements.batchCount.value) || 3;
+        // 获取批量生成数量（默认为1）
+        const count = parseInt(this.elements.batchCount.value) || 1;
         const delay = parseFloat(this.elements.batchDelay.value) || 1;
         const userPrompt = this.elements.userPrompt.value;
         
-        this.state.isBatchGenerating = true;
-        this.elements.batchGenerateBtn.disabled = true;
-        this.elements.batchGenerateBtn.innerHTML = '<span class="loading-spinner me-1"></span> 生成中...';
+        this.state.isGenerating = true;
+        this.elements.generateBtn.disabled = true;
+        this.elements.generateBtn.innerHTML = '<span class="loading-spinner me-1"></span> 生成中...';
         
         // 显示进度条
         this.elements.batchProgress.classList.remove('d-none');
         this.elements.batchProgress.querySelector('.progress-bar').style.width = '0%';
-        
-        // 清空结果区域
-        this.elements.batchResults.innerHTML = '';
-        this.state.batchResults = [];
         
         const config = {
             count: count,
@@ -454,76 +336,45 @@ const UI = {
         };
         
         try {
-            // 创建结果占位符
-            for (let i = 0; i < count; i++) {
-                const resultItem = document.createElement('div');
-                resultItem.className = 'card mb-2 batch-result-item';
-                resultItem.dataset.index = i;
-                resultItem.innerHTML = `
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between">
-                            <div>
-                                <strong>灵感 #${i+1}</strong>
-                            </div>
-                            <div class="text-muted small">
-                                <span class="status">等待中...</span>
-                            </div>
-                        </div>
-                        <div class="content mt-1 small text-truncate">...</div>
-                    </div>
-                `;
-                
-                resultItem.addEventListener('click', () => {
-                    this.showBatchResult(i);
-                });
-                
-                this.elements.batchResults.appendChild(resultItem);
+            // 检查是否是第一次生成
+            const isFirstGeneration = this.elements.resultContent.innerHTML.includes('生成的内容将显示在这里');
+            if (isFirstGeneration) {
+                this.elements.resultContent.innerHTML = '';
             }
             
             // 开始批量生成
             const results = await IndiensteinService.generateBatchInspiration(
                 config,
                 (index, content) => {
-                    // 单项更新回调
-                    const item = this.elements.batchResults.querySelector(`[data-index="${index}"]`);
-                    if (item) {
-                        const statusEl = item.querySelector('.status');
-                        const contentEl = item.querySelector('.content');
-                        
-                        statusEl.textContent = '生成中...';
-                        if (contentEl.textContent === '...') {
-                            contentEl.textContent = content;
-                        } else {
-                            contentEl.textContent += content;
-                        }
+                    // 单项更新回调 - 实时显示在文本框中
+                    if (index === 0 && this.elements.resultContent.innerHTML === '') {
+                        // 第一个生成项的第一次内容
+                        this.elements.resultContent.innerHTML = content;
+                    } else {
+                        this.elements.resultContent.innerHTML += content;
                     }
+                    
+                    // 自动滚动到底部
+                    this.elements.resultContent.scrollTop = this.elements.resultContent.scrollHeight;
                 },
                 (index, result) => {
                     // 单项完成回调
-                    const item = this.elements.batchResults.querySelector(`[data-index="${index}"]`);
-                    if (item) {
-                        const statusEl = item.querySelector('.status');
-                        const contentEl = item.querySelector('.content');
-                        
-                        statusEl.textContent = '已完成';
-                        statusEl.classList.add('text-success');
-                        contentEl.textContent = result.content.substring(0, 50) + '...';
+                    console.log(`保存结果 ${index + 1}:`, result); // 调试信息
+                    console.log(`内容长度: ${result.content?.length || 0}, 内容预览: ${result.content?.substring(0, 50) || '无内容'}...`); // 调试信息
+                    this.state.allGeneratedResults.push(result);
+                    
+                    // 如果不是最后一个，添加分隔线
+                    if (index < count - 1) {
+                        this.elements.resultContent.innerHTML += '\n\n--- 下一个灵感 ---\n\n';
                     }
                     
-                    // 保存结果
-                    this.state.batchResults[index] = result;
+                    this.elements.exportBtn.disabled = false;
+                    this.addDebugInfo(`灵感 ${index + 1} 生成完成，内容长度: ${result.content?.length || 0}`, 'log');
                 },
                 (index, error) => {
                     // 单项错误回调
-                    const item = this.elements.batchResults.querySelector(`[data-index="${index}"]`);
-                    if (item) {
-                        const statusEl = item.querySelector('.status');
-                        const contentEl = item.querySelector('.content');
-                        
-                        statusEl.textContent = '失败';
-                        statusEl.classList.add('text-danger');
-                        contentEl.textContent = `错误: ${error}`;
-                    }
+                    this.elements.resultContent.innerHTML += `\n\n❌ 生成失败: ${error}\n\n`;
+                    this.logApiError(error);
                 },
                 (current, total) => {
                     // 进度回调
@@ -532,146 +383,90 @@ const UI = {
                 }
             );
             
-            // 保存批量结果到本地存储
+            // 保存结果到本地存储
             if (results && results.length > 0) {
                 StorageService.saveBatchInspirations(results);
-                this.elements.exportBatchBtn.classList.remove('d-none');
             }
             
         } catch (error) {
-            console.error('批量生成失败:', error);
-            this.showMessage('批量生成失败: ' + error.message, 'danger');
+            console.error('生成灵感失败:', error);
+            this.elements.resultContent.innerHTML += `\n\n❌ 生成失败: ${error.message}\n\n`;
+            this.logApiError(`生成异常: ${error.message}`);
         } finally {
-            this.state.isBatchGenerating = false;
-            this.elements.batchGenerateBtn.disabled = false;
-            this.elements.batchGenerateBtn.innerHTML = '<i class="bi bi-lightning"></i> 开始批量生成';
+            this.state.isGenerating = false;
+            this.elements.generateBtn.disabled = false;
+            this.elements.generateBtn.innerHTML = '<i class="bi bi-stars"></i> 生成灵感';
+            this.updateGenerateButton();
+            
+            // 隐藏进度条
+            setTimeout(() => {
+                this.elements.batchProgress.classList.add('d-none');
+            }, 1000);
         }
     },
     
     /**
-     * 显示批量生成结果
-     * @param {number} index 结果索引
+     * 导出所有生成的结果
      */
-    showBatchResult(index) {
-        const result = this.state.batchResults[index];
-        if (!result) return;
+    exportAllResults() {
+        console.log('导出时的allGeneratedResults:', this.state.allGeneratedResults); // 调试信息
         
-        this.state.currentBatchIndex = index;
-        
-        // 高亮选中项
-        const items = this.elements.batchResults.querySelectorAll('.batch-result-item');
-        items.forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        const selectedItem = this.elements.batchResults.querySelector(`[data-index="${index}"]`);
-        if (selectedItem) {
-            selectedItem.classList.add('active');
+        if (!this.state.allGeneratedResults || this.state.allGeneratedResults.length === 0) {
+            this.showMessage('没有可导出的内容', 'warning');
+            return;
         }
         
-        // 显示详细结果
-        const modal = new bootstrap.Modal(document.getElementById('batchResultModal'));
-        const contentEl = document.getElementById('batchResultContent');
+        // 创建包含所有结果的导出内容
+        let content = `# 游戏灵感集合\n\n`;
+        content += `## 导出时间\n${new Date().toLocaleString()}\n\n`;
+        content += `## 总共生成了 ${this.state.allGeneratedResults.length} 个灵感\n\n`;
         
-        // 构建结果内容
-        let content = '';
-        
-        // 向量信息
-        content += '<div class="mb-3">';
-        content += '<h6>选择的元素：</h6>';
-        content += '<div class="d-flex flex-wrap gap-2 mb-2">';
-        
-        for (const [dimensionId, vector] of Object.entries(result.sourceVectors)) {
-            const dimension = InfoSpace.getDimension(dimensionId);
-            if (dimension) {
-                content += `
-                    <div class="vector-tag">
-                        <span class="dimension-name">${dimension.name}:</span>
-                        <span class="vector-name">${vector.name}</span>
-                    </div>
-                `;
+        this.state.allGeneratedResults.forEach((result, index) => {
+            console.log(`导出第 ${index + 1} 个结果:`, result); // 调试信息
+            
+            content += `---\n\n`;
+            content += `### 灵感 ${index + 1}\n\n`;
+            content += `**生成时间**: ${new Date(result.createdTime).toLocaleString()}\n\n`;
+            
+            content += `**选择的元素**:\n`;
+            for (const [dimensionId, vector] of Object.entries(result.sourceVectors)) {
+                const dimension = InfoSpace.getDimension(dimensionId);
+                if (dimension) {
+                    content += `- ${dimension.name}: ${vector.name}\n`;
+                    if (vector.description) {
+                        content += `  ${vector.description}\n`;
+                    }
+                }
             }
-        }
-        
-        content += '</div>';
-        content += '</div>';
-        
-        // 用户提示
-        if (result.userPrompt) {
-            content += `
-                <div class="mb-3">
-                    <h6>用户提示：</h6>
-                    <div class="border rounded p-2">${result.userPrompt}</div>
-                </div>
-            `;
-        }
-        
-        // 生成内容
-        content += `
-            <div>
-                <h6>生成内容：</h6>
-                <div class="border rounded p-3">${result.content}</div>
-            </div>
-        `;
-        
-        contentEl.innerHTML = content;
-        
-        // 导出按钮事件
-        const exportBtn = document.getElementById('exportCurrentBatchBtn');
-        exportBtn.onclick = () => {
-            StorageService.exportInspirationAsText(
-                result,
-                `游戏灵感_${new Date().toISOString().slice(0, 10)}_${index+1}.txt`
-            );
-        };
-        
-        modal.show();
-    },
-    
-    /**
-     * 导出所有批量生成结果
-     */
-    exportBatchInspirations() {
-        if (!this.state.batchResults || this.state.batchResults.length === 0) return;
-        
-        StorageService.exportInspirations(
-            this.state.batchResults,
-            `游戏灵感_批量_${new Date().toISOString().slice(0, 10)}.json`
-        );
-    },
-    
-    /**
-     * 更新模型选项
-     */
-    updateModelOptions() {
-        const provider = this.elements.providerSelect.value;
-        AIService.currentSettings.provider = provider;
-        
-        const models = AIService.getModelsForCurrentProvider();
-        const modelSelect = this.elements.modelSelect;
-        modelSelect.innerHTML = '';
-        
-        models.forEach(model => {
-            const option = document.createElement('option');
-            option.value = model.id;
-            option.textContent = model.name;
-            modelSelect.appendChild(option);
+            content += '\n';
+            
+            if (result.userPrompt) {
+                content += `**用户提示**: ${result.userPrompt}\n\n`;
+            }
+            
+            content += `**灵感内容**:\n${result.content || '内容为空'}\n\n`;
         });
         
-        // 设置默认模型
-        if (models.length > 0) {
-            const defaultModel = AIService.providers[provider].defaultModel;
-            modelSelect.value = defaultModel;
-            AIService.currentSettings.model = defaultModel;
-        }
+        console.log('最终导出内容:', content); // 调试信息
+        
+        // 导出文件
+        const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+        const exportLink = document.createElement('a');
+        exportLink.setAttribute('href', dataUri);
+        exportLink.setAttribute('download', `游戏灵感集合_${new Date().toISOString().slice(0, 10)}.txt`);
+        exportLink.click();
+        
+        this.showMessage(`已导出 ${this.state.allGeneratedResults.length} 个灵感`, 'success');
     },
     
     /**
-     * 保存设置（废弃 - 已由总览页面取代）
+     * 清空生成结果
      */
-    saveSettings() {
-        // 这个函数已被总览页面的saveAllSettings替代
-        console.warn('saveSettings 已废弃，请使用 saveAllSettings');
+    clearResult() {
+        this.elements.resultContent.innerHTML = '<div class="text-center text-muted">生成的内容将显示在这里</div>';
+        this.elements.exportBtn.disabled = true;
+        this.state.allGeneratedResults = []; // 清空所有结果
+        this.showMessage('已清空生成历史', 'success');
     },
     
     /**
@@ -1059,5 +854,31 @@ const UI = {
      */
     logApiError(error) {
         this.addDebugInfo(`API错误: ${error}`, 'error');
+    },
+    
+    /**
+     * 更新模型选项
+     */
+    updateModelOptions() {
+        const provider = this.elements.providerSelect.value;
+        AIService.currentSettings.provider = provider;
+        
+        const models = AIService.getModelsForCurrentProvider();
+        const modelSelect = this.elements.modelSelect;
+        modelSelect.innerHTML = '';
+        
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            modelSelect.appendChild(option);
+        });
+        
+        // 设置默认模型
+        if (models.length > 0) {
+            const defaultModel = AIService.providers[provider].defaultModel;
+            modelSelect.value = defaultModel;
+            AIService.currentSettings.model = defaultModel;
+        }
     }
 }; 

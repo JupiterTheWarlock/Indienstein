@@ -382,6 +382,7 @@ const AIService = {
             const decoder = new TextDecoder();
             let buffer = '';
             let finalResponse = null;
+            let fullContent = ''; // 累积所有内容片段
             
             while (true) {
                 const { done, value } = await reader.read();
@@ -413,6 +414,7 @@ const AIService = {
                             let content = this.extractContentFromStreamResponse(json);
                             
                             if (content) {
+                                fullContent += content; // 累积内容
                                 onContent?.(content);
                             }
                             
@@ -425,13 +427,12 @@ const AIService = {
                 }
             }
             
-            // 处理完成
-            let finalContent = '';
-            if (finalResponse && finalResponse.choices && finalResponse.choices[0]) {
-                finalContent = finalResponse.choices[0].message?.content || '';
+            // 处理完成 - 使用累积的完整内容
+            console.log(`AIService: 流式传输完成，总内容长度: ${fullContent.length}`);
+            if (fullContent.length === 0) {
+                console.warn('AIService: 警告 - 流式传输完成但内容为空');
             }
-            
-            onComplete?.(finalContent);
+            onComplete?.(fullContent);
             return finalResponse;
         } catch (error) {
             console.error('AIService: 流式请求失败', error);

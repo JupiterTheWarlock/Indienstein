@@ -52,31 +52,41 @@ const IndiensteinService = {
      * 构建AI提示词
      * @param {Object} selectedVectors 选中的向量
      * @param {string} userPrompt 用户自定义提示
+     * @param {boolean} isLongFormat 是否为长文本格式
      * @returns {string} 构建的提示词
      */
-    buildPrompt(selectedVectors, userPrompt = '') {
-        let prompt = '请根据以下信息元素为我生成一个创意游戏灵感：\n\n';
+    buildPrompt(selectedVectors, userPrompt = '', isLongFormat = false) {
+        // 检查格式切换状态
+        const formatToggle = document.getElementById('formatToggle');
+        const actualIsLongFormat = formatToggle ? formatToggle.checked : isLongFormat;
+        
+        let prompt = '';
         
         // 添加选中的向量信息
+        const vectorsInfo = [];
         for (const [dimensionId, vector] of Object.entries(selectedVectors)) {
             const dimension = InfoSpace.getDimension(dimensionId);
             if (dimension) {
-                prompt += `【${dimension.name}】: ${vector.name}\n`;
-                if (vector.description) {
-                    prompt += `  描述: ${vector.description}\n`;
+                vectorsInfo.push(`【${dimension.name}】: ${vector.name}`);
+                if (vector.description && actualIsLongFormat) {
+                    vectorsInfo.push(`  描述: ${vector.description}`);
                 }
-                prompt += '\n';
             }
         }
         
-        // 用户自定义提示
-        if (userPrompt && userPrompt.trim()) {
-            prompt += '额外要求：\n';
-            prompt += userPrompt + '\n\n';
-        }
-        
-        // 结尾指引
-        prompt += `请基于这些元素，创造一个有趣、创新的游戏概念。包括：
+        if (actualIsLongFormat) {
+            // 长文本模式的提示词
+            prompt = '请根据以下信息元素为我生成一个创意游戏灵感：\n\n';
+            prompt += vectorsInfo.join('\n') + '\n\n';
+            
+            // 用户自定义提示
+            if (userPrompt && userPrompt.trim()) {
+                prompt += '额外要求：\n';
+                prompt += userPrompt + '\n\n';
+            }
+            
+            // 结尾指引
+            prompt += `请基于这些元素，创造一个有趣、创新的游戏概念。包括：
 1. 游戏核心概念
 2. 主要玩法机制  
 3. 游戏目标
@@ -84,6 +94,28 @@ const IndiensteinService = {
 5. 可能的发展方向
 
 请用简洁明了的语言描述，字数控制在200-500字之间。`;
+        } else {
+            // 短文本模式的提示词
+            prompt = `你是一个专业的游戏灵感生成器，擅长将随机关键词转化为简短的游戏创意。
+
+你的任务是：
+1. 分析用户提供的维度和关键词
+2. 基于这些关键词生成一个简短的游戏灵感
+3. 灵感必须是一句话，不超过100个字
+4. 确保灵感清晰、有创意、独特
+5. 灵感应该包含游戏的核心机制或玩法思路
+6. 不要解释你的思考过程，直接给出结果
+
+你的回复必须简洁、直接，只返回一句游戏灵感，不包含任何前言或解释。
+
+维度关键词：
+${vectorsInfo.join('\n')}`;
+            
+            // 用户自定义提示
+            if (userPrompt && userPrompt.trim()) {
+                prompt += `\n\n额外要求：${userPrompt}`;
+            }
+        }
         
         return prompt;
     },
@@ -173,7 +205,7 @@ const IndiensteinService = {
         const dimensionIds = config.dimensionIds || [];
         const useWeight = config.useWeight || false;
         const userPrompt = config.userPrompt || '';
-        const delay = config.delay || 1;
+        const delay = config.delayBetweenRequests || 1;
         
         const results = [];
         
@@ -188,16 +220,29 @@ const IndiensteinService = {
                 }
                 
                 // 生成灵感
-                const result = await this.generateInspirationStream(
+                let itemResult = null;
+                await this.generateInspirationStream(
                     selectedVectors,
                     userPrompt,
                     (content) => onItemUpdate?.(i, content),
-                    (content) => onItemComplete?.(i, result),
+                    (content) => {
+                        // 在生成完成时创建完整的结果对象
+                        const fullResult = {
+                            content: content,
+                            sourceVectors: selectedVectors,
+                            userPrompt: userPrompt,
+                            createdTime: new Date().toISOString()
+                        };
+                        results[i] = fullResult; // 保存到结果数组
+                        itemResult = fullResult; // 保存单项结果
+                        onItemComplete?.(i, fullResult); // 调用完成回调
+                    },
                     (error) => onItemError?.(i, error)
                 );
                 
-                if (result) {
-                    results.push(result);
+                // 确保结果被正确保存
+                if (itemResult) {
+                    console.log(`批量生成 ${i + 1} 完成，内容长度: ${itemResult.content?.length || 0}`);
                 }
                 
                 // 更新进度

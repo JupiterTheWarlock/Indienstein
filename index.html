@@ -18,7 +18,7 @@
                 </a>
                 <div class="d-flex">
                     <div class="form-check form-switch me-3" id="formatToggleContainer" style="display: none;">
-                        <input class="form-check-input" type="checkbox" id="formatToggle" checked>
+                        <input class="form-check-input" type="checkbox" id="formatToggle">
                         <label class="form-check-label text-light" for="formatToggle">长文本模式</label>
                     </div>
                 </div>
@@ -242,40 +242,34 @@
                 </div>
             </div>
 
-            <!-- 右侧面板：批量生成 -->
+            <!-- 右侧面板：生成配置 -->
             <div class="col-md-3">
                 <div class="card">
                     <div class="card-header bg-info text-white">
-                        <h5 class="card-title mb-0">批量生成</h5>
+                        <h5 class="card-title mb-0">生成配置</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
                             <label for="batchCount" class="form-label">生成数量：</label>
-                            <input type="number" id="batchCount" class="form-control" min="1" max="10" value="3">
+                            <input type="number" id="batchCount" class="form-control" min="1" max="10" value="1">
                         </div>
                         <div class="mb-3">
                             <label for="batchDelay" class="form-label">请求间隔（秒）：</label>
                             <input type="number" id="batchDelay" class="form-control" min="0" max="10" value="1">
                         </div>
-                        <button id="batchGenerateBtn" class="btn btn-primary w-100">
-                            <i class="bi bi-lightning"></i> 开始批量生成
-                        </button>
                         
                         <div id="batchProgress" class="progress mt-3 d-none">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
                         </div>
                         
-                        <div id="batchResults" class="mt-3">
-                            <!-- 批量生成结果将显示在这里 -->
-                        </div>
-                        
-                        <button id="exportBatchBtn" class="btn btn-sm btn-outline-secondary w-100 mt-3 d-none">
-                            <i class="bi bi-download"></i> 导出所有结果
-                        </button>
-                    </div>
-                            </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                💡 提示：生成数量为1时相当于单次生成，大于1时将进行批量生成
+                            </small>
                         </div>
                     </div>
+                </div>
+            </div>
 
                     <!-- 信息空间页面 -->
                     <div class="tab-pane fade" id="v-pills-infospace" role="tabpanel" aria-labelledby="v-pills-infospace-tab">
@@ -336,27 +330,6 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 批量生成结果模态框 -->
-    <div class="modal fade" id="batchResultModal" tabindex="-1" aria-labelledby="batchResultModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="batchResultModalLabel">批量生成结果</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="batchResultContent">
-                        <!-- 批量生成详细结果将显示在这里 -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
-                    <button type="button" class="btn btn-primary" id="exportCurrentBatchBtn">导出当前结果</button>
                 </div>
             </div>
         </div>
