@@ -29,6 +29,10 @@ const UI = {
         this.setupInfoSpacePage();
         this.loadIndiensteinSettings(); // 加载Indienstein页面的临时设置
         this.updateGenerateButton();
+        
+        // 确保默认配置正确
+        AIService.resetTemperatureAndTokens();
+        this.updateUIFromSettings();
     },
     
     /**
@@ -79,6 +83,10 @@ const UI = {
         
         // 格式切换
         this.elements.formatToggle = document.getElementById('formatToggle');
+        
+        // 调试信息
+        this.elements.debugInfo = document.getElementById('debugInfo');
+        this.elements.clearDebugBtn = document.getElementById('clearDebugBtn');
     },
     
     /**
@@ -117,9 +125,15 @@ const UI = {
             this.updateModelOptions();
             // 临时更新设置但不保存
             AIService.currentSettings.provider = this.elements.providerSelect.value;
+            // 保持温度和令牌数的默认值
+            AIService.resetTemperatureAndTokens();
+            this.updateUIFromSettings();
         });
         this.elements.modelSelect.addEventListener('change', () => {
             AIService.currentSettings.model = this.elements.modelSelect.value;
+            // 保持温度和令牌数的默认值
+            AIService.resetTemperatureAndTokens();
+            this.updateUIFromSettings();
         });
         this.elements.temperatureInput.addEventListener('input', () => {
             this.elements.temperatureValue.textContent = this.elements.temperatureInput.value;
@@ -131,6 +145,9 @@ const UI = {
         
         // 格式切换
         this.elements.formatToggle.addEventListener('change', () => this.toggleFormat());
+        
+        // 调试信息
+        this.elements.clearDebugBtn.addEventListener('click', () => this.clearDebugInfo());
     },
     
     /**
@@ -296,6 +313,14 @@ const UI = {
         
         const userPrompt = this.elements.userPrompt.value;
         
+        // 记录生成开始
+        this.addDebugInfo('开始生成灵感', 'log');
+        this.logApiRequest({
+            provider: AIService.currentSettings.provider,
+            model: AIService.currentSettings.model,
+            messageCount: 1
+        });
+        
         try {
             const result = await IndiensteinService.generateInspirationStream(
                 selectedVectors,
@@ -313,11 +338,13 @@ const UI = {
                     // 完成回调
                     this.elements.resultContent.classList.remove('generating');
                     this.elements.exportBtn.disabled = false;
+                    this.addDebugInfo('灵感生成完成', 'log');
                 },
                 (error) => {
                     // 错误回调
                     this.elements.resultContent.classList.remove('generating');
                     this.elements.resultContent.innerHTML = `<div class="text-danger">生成失败: ${error}</div>`;
+                    this.logApiError(error);
                 }
             );
             
@@ -330,6 +357,7 @@ const UI = {
         } catch (error) {
             console.error('生成灵感失败:', error);
             this.elements.resultContent.innerHTML = `<div class="text-danger">生成失败: ${error.message}</div>`;
+            this.logApiError(`生成异常: ${error.message}`);
         } finally {
             this.state.isGenerating = false;
             this.elements.generateBtn.disabled = false;
@@ -595,7 +623,9 @@ const UI = {
         
         // 设置默认模型
         if (models.length > 0) {
-            modelSelect.value = AIService.providers[provider].defaultModel;
+            const defaultModel = AIService.providers[provider].defaultModel;
+            modelSelect.value = defaultModel;
+            AIService.currentSettings.model = defaultModel;
         }
     },
     
@@ -827,6 +857,17 @@ const UI = {
     },
     
     /**
+     * 从AIService设置更新UI界面
+     */
+    updateUIFromSettings() {
+        const settings = AIService.currentSettings;
+        
+        this.elements.temperatureInput.value = settings.temperature;
+        this.elements.temperatureValue.textContent = settings.temperature;
+        this.elements.maxTokensInput.value = settings.maxTokens;
+    },
+    
+    /**
      * 设置信息空间页面
      */
     setupInfoSpacePage() {
@@ -908,5 +949,63 @@ const UI = {
                 ${vectorsHtml}
             </div>
         `;
+    },
+    
+    /**
+     * 添加调试信息
+     * @param {string} message 调试信息
+     * @param {string} type 信息类型 (log, warn, error)
+     */
+    addDebugInfo(message, type = 'log') {
+        const timestamp = new Date().toLocaleTimeString();
+        const colorClass = {
+            'log': 'text-primary',
+            'warn': 'text-warning', 
+            'error': 'text-danger'
+        }[type] || 'text-muted';
+        
+        const debugDiv = document.createElement('div');
+        debugDiv.className = `debug-entry ${colorClass} mb-1`;
+        debugDiv.innerHTML = `[${timestamp}] ${message}`;
+        
+        // 如果是第一条记录，清空默认文本
+        if (this.elements.debugInfo.children.length === 1 && 
+            this.elements.debugInfo.children[0].classList.contains('text-muted')) {
+            this.elements.debugInfo.innerHTML = '';
+        }
+        
+        this.elements.debugInfo.appendChild(debugDiv);
+        
+        // 自动滚动到底部
+        this.elements.debugInfo.scrollTop = this.elements.debugInfo.scrollHeight;
+        
+        // 限制最大条目数
+        while (this.elements.debugInfo.children.length > 100) {
+            this.elements.debugInfo.removeChild(this.elements.debugInfo.firstChild);
+        }
+    },
+    
+    /**
+     * 清空调试信息
+     */
+    clearDebugInfo() {
+        this.elements.debugInfo.innerHTML = '<div class="text-muted">调试信息和错误日志会显示在这里...</div>';
+    },
+    
+    /**
+     * 记录API请求信息
+     * @param {Object} requestInfo 请求信息
+     */
+    logApiRequest(requestInfo) {
+        const message = `API请求 - ${requestInfo.provider} (${requestInfo.model}): ${requestInfo.messageCount}条消息`;
+        this.addDebugInfo(message, 'log');
+    },
+    
+    /**
+     * 记录API错误
+     * @param {string} error 错误信息
+     */
+    logApiError(error) {
+        this.addDebugInfo(`API错误: ${error}`, 'error');
     }
 }; 

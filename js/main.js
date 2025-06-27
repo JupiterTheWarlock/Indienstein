@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化UI
     UI.init();
     
+    // 设置console重定向
+    setupConsoleRedirect();
+    
     // 显示欢迎信息
     console.log('Indienstein 初始化完成 - AI游戏灵感生成器');
 });
@@ -55,4 +58,38 @@ window.onerror = function(message, source, lineno, colno, error) {
     }
     
     return true; // 防止默认错误处理
-}; 
+};
+
+/**
+ * 设置console重定向到调试窗口
+ */
+function setupConsoleRedirect() {
+    // 保存原始的console方法
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    
+    // 重定向console.log
+    console.log = function(...args) {
+        originalLog.apply(console, args);
+        if (UI && UI.addDebugInfo) {
+            UI.addDebugInfo(args.join(' '), 'log');
+        }
+    };
+    
+    // 重定向console.warn
+    console.warn = function(...args) {
+        originalWarn.apply(console, args);
+        if (UI && UI.addDebugInfo) {
+            UI.addDebugInfo(args.join(' '), 'warn');
+        }
+    };
+    
+    // 重定向console.error
+    console.error = function(...args) {
+        originalError.apply(console, args);
+        if (UI && UI.addDebugInfo) {
+            UI.addDebugInfo(args.join(' '), 'error');
+        }
+    };
+} 

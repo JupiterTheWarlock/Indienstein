@@ -7,9 +7,9 @@ const AIService = {
     // 当前设置
     currentSettings: {
         provider: 'siliconflow',
-        model: 'deepseek-ai/DeepSeek-V2.5',
+        model: 'deepseek-ai/DeepSeek-V3',
         temperature: 0.7,
-        maxTokens: 2000,
+        maxTokens: 8192,
         streamOutput: true
     },
     
@@ -25,10 +25,10 @@ const AIService = {
         'siliconflow': {
             name: '硅基流动',
             apiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions',
-            defaultModel: 'deepseek-ai/DeepSeek-V2.5',
+            defaultModel: 'deepseek-ai/DeepSeek-V3',
             models: [
-                { id: 'deepseek-ai/DeepSeek-V2.5', name: 'DeepSeek-V2.5' },
                 { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek-V3' },
+                { id: 'deepseek-ai/DeepSeek-V2.5', name: 'DeepSeek-V2.5' },
                 { id: 'THUDM/glm-4-9b-chat', name: 'GLM-4-9B' },
                 { id: 'meta-llama/Llama-3.3-70B-Instruct', name: 'Llama-3.3-70B' },
                 { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen2.5-72B' }
@@ -120,6 +120,15 @@ const AIService = {
     },
     
     /**
+     * 重置温度和令牌数为默认值
+     * 用于确保在切换供应商和模型时保持统一的默认值
+     */
+    resetTemperatureAndTokens() {
+        this.currentSettings.temperature = 0.7;
+        this.currentSettings.maxTokens = 8192;
+    },
+    
+    /**
      * 更新API Key
      * @param {string} provider 供应商ID
      * @param {string} apiKey 新的API Key
@@ -184,13 +193,40 @@ const AIService = {
     buildRequestData(messages) {
         const settings = this.currentSettings;
         
-        return {
+        // 标准化消息格式，确保符合OpenAI API规范
+        const formattedMessages = messages.map(message => {
+            if (typeof message === 'string') {
+                return {
+                    role: 'user',
+                    content: message
+                };
+            }
+            
+            return {
+                role: message.role || 'user',
+                content: message.content || message
+            };
+        });
+        
+        const requestData = {
             model: settings.model,
-            messages: messages,
+            messages: formattedMessages,
             temperature: settings.temperature,
             max_tokens: settings.maxTokens,
             stream: settings.streamOutput
         };
+        
+        // 添加供应商特定的参数
+        if (settings.provider === 'zhipu') {
+            // 智谱API的特殊参数
+            if (requestData.stream) {
+                requestData.stream = true;
+                requestData.incremental = true;
+            }
+        }
+        
+        console.log('AIService: 构建请求数据', requestData);
+        return requestData;
     },
     
     /**
@@ -223,11 +259,28 @@ const AIService = {
             console.warn('AIService: 使用非流式方法请求流式输出');
         }
         
+        // 预先验证
+        const validation = this.validateConfiguration();
+        if (!validation.valid) {
+            throw new Error(`配置错误: ${validation.errors.join(', ')}`);
+        }
+        
+        if (!messages || messages.length === 0) {
+            throw new Error('消息列表不能为空');
+        }
+        
         const requestData = this.buildRequestData(messages);
         requestData.stream = false;
         
         const headers = this.getRequestHeaders();
         const apiEndpoint = this.getApiEndpoint();
+        
+        console.log('AIService: 准备发送非流式请求', {
+            endpoint: apiEndpoint,
+            provider: this.currentSettings.provider,
+            model: this.currentSettings.model,
+            messageCount: messages.length
+        });
         
         try {
             const response = await fetch(apiEndpoint, {
@@ -237,7 +290,15 @@ const AIService = {
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('AIService: API请求失败详情', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorText: errorText,
+                    requestData: requestData,
+                    headers: headers
+                });
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}\n详情: ${errorText}`);
             }
             
             const data = await response.json();
@@ -271,11 +332,32 @@ const AIService = {
             }
         }
         
+        // 预先验证
+        const validation = this.validateConfiguration();
+        if (!validation.valid) {
+            const error = `配置错误: ${validation.errors.join(', ')}`;
+            onError?.(error);
+            throw new Error(error);
+        }
+        
+        if (!messages || messages.length === 0) {
+            const error = '消息列表不能为空';
+            onError?.(error);
+            throw new Error(error);
+        }
+        
         const requestData = this.buildRequestData(messages);
         requestData.stream = true;
         
         const headers = this.getRequestHeaders();
         const apiEndpoint = this.getApiEndpoint();
+        
+        console.log('AIService: 准备发送流式请求', {
+            endpoint: apiEndpoint,
+            provider: this.currentSettings.provider,
+            model: this.currentSettings.model,
+            messageCount: messages.length
+        });
         
         try {
             const response = await fetch(apiEndpoint, {
@@ -285,7 +367,15 @@ const AIService = {
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('AIService: 流式API请求失败详情', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorText: errorText,
+                    requestData: requestData,
+                    headers: headers
+                });
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}\n详情: ${errorText}`);
             }
             
             const reader = response.body.getReader();
@@ -310,27 +400,26 @@ const AIService = {
                 
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
+                        const data = line.slice(6).trim();
                         
-                        if (data === '[DONE]') {
+                        if (data === '[DONE]' || data === '') {
                             continue;
                         }
                         
                         try {
                             const json = JSON.parse(data);
                             
-                            if (json.choices && json.choices[0]) {
-                                const delta = json.choices[0].delta;
-                                
-                                if (delta && delta.content) {
-                                    onContent?.(delta.content);
-                                }
-                                
-                                // 保存最后一个响应作为最终结果
-                                finalResponse = json;
+                            // 处理不同供应商的响应格式
+                            let content = this.extractContentFromStreamResponse(json);
+                            
+                            if (content) {
+                                onContent?.(content);
                             }
+                            
+                            // 保存最后一个响应作为最终结果
+                            finalResponse = json;
                         } catch (e) {
-                            console.warn('AIService: 解析SSE数据失败', e);
+                            console.warn('AIService: 解析SSE数据失败', data, e);
                         }
                     }
                 }
@@ -349,5 +438,89 @@ const AIService = {
             onError?.(error.message);
             throw error;
         }
+    },
+    
+    /**
+     * 从流式响应中提取内容
+     * @param {Object} json 响应JSON对象
+     * @returns {string|null} 提取的内容
+     */
+    extractContentFromStreamResponse(json) {
+        // 标准OpenAI格式
+        if (json.choices && json.choices[0]) {
+            const choice = json.choices[0];
+            
+            // 流式响应中的delta
+            if (choice.delta && choice.delta.content) {
+                return choice.delta.content;
+            }
+            
+            // 完整响应中的message
+            if (choice.message && choice.message.content) {
+                return choice.message.content;
+            }
+        }
+        
+        // 智谱AI格式
+        if (json.delta && json.delta.content) {
+            return json.delta.content;
+        }
+        
+        // 直接内容格式
+        if (json.content) {
+            return json.content;
+        }
+        
+        // 其他可能的格式
+        if (json.text) {
+            return json.text;
+        }
+        
+        return null;
+    },
+    
+    /**
+     * 验证API Key是否设置
+     * @returns {boolean} 是否已设置API Key
+     */
+    validateApiKey() {
+        const apiKey = this.getCurrentApiKey();
+        if (!apiKey) {
+            console.error('AIService: 未设置API Key');
+            return false;
+        }
+        return true;
+    },
+    
+    /**
+     * 验证当前配置
+     * @returns {Object} 验证结果
+     */
+    validateConfiguration() {
+        const result = {
+            valid: true,
+            errors: []
+        };
+        
+        // 检查API Key
+        if (!this.validateApiKey()) {
+            result.valid = false;
+            result.errors.push('未设置API Key');
+        }
+        
+        // 检查供应商配置
+        const provider = this.providers[this.currentSettings.provider];
+        if (!provider) {
+            result.valid = false;
+            result.errors.push('未知的供应商');
+        }
+        
+        // 检查模型
+        if (!this.currentSettings.model) {
+            result.valid = false;
+            result.errors.push('未设置模型');
+        }
+        
+        return result;
     }
 }; 

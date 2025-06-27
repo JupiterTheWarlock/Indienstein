@@ -113,6 +113,14 @@ const IndiensteinService = {
         ];
         
         try {
+            // 验证AI服务配置
+            const validation = AIService.validateConfiguration();
+            if (!validation.valid) {
+                const error = `AI服务配置错误: ${validation.errors.join(', ')}`;
+                onError?.(error);
+                return null;
+            }
+            
             // 调用AI服务
             let finalContent = '';
             
