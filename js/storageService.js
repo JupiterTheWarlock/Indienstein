@@ -3,16 +3,13 @@
  * 实现数据持久化
  */
 
-class StorageService {
-    constructor() {
-        // 存储键名
-        this.KEYS = {
-            INSPIRATIONS: 'indienstein_inspirations',
-            SETTINGS: 'indienstein_settings',
-            FAVORITES: 'indienstein_favorites',
-            API_KEYS: 'indienstein_api_keys'
-        };
-    }
+const StorageService = {
+    // 存储键名
+    KEYS: {
+        INSPIRATIONS: 'indienstein_inspirations',
+        SETTINGS: 'indienstein_settings',
+        FAVORITES: 'indienstein_favorites'
+    },
 
     /**
      * 保存灵感到本地存储
@@ -47,7 +44,7 @@ class StorageService {
         localStorage.setItem(this.KEYS.INSPIRATIONS, JSON.stringify(inspirations));
         
         return id;
-    }
+    },
 
     /**
      * 批量保存灵感
@@ -67,7 +64,7 @@ class StorageService {
         }
         
         return ids;
-    }
+    },
 
     /**
      * 获取所有灵感
@@ -76,7 +73,7 @@ class StorageService {
     getInspirations() {
         const inspirationsJson = localStorage.getItem(this.KEYS.INSPIRATIONS);
         return inspirationsJson ? JSON.parse(inspirationsJson) : [];
-    }
+    },
 
     /**
      * 获取最近的灵感
@@ -92,7 +89,7 @@ class StorageService {
         });
         
         return inspirations.slice(0, count);
-    }
+    },
 
     /**
      * 获取收藏的灵感
@@ -101,23 +98,7 @@ class StorageService {
     getFavoriteInspirations() {
         const inspirations = this.getInspirations();
         return inspirations.filter(i => i.metadata && i.metadata.isFavorite);
-    }
-
-    /**
-     * 获取历史记录（用于Dashboard模块）
-     * @returns {Array} 历史记录数组
-     */
-    getHistory() {
-        // 获取所有灵感作为历史记录
-        const inspirations = this.getInspirations();
-        
-        // 按时间排序（最新的在前）
-        return inspirations.sort((a, b) => {
-            const timeA = new Date(a.createdTime || a.timestamp || 0);
-            const timeB = new Date(b.createdTime || b.timestamp || 0);
-            return timeB - timeA;
-        });
-    }
+    },
 
     /**
      * 根据ID获取灵感
@@ -127,7 +108,7 @@ class StorageService {
     getInspirationById(id) {
         const inspirations = this.getInspirations();
         return inspirations.find(i => i.id === id) || null;
-    }
+    },
 
     /**
      * 更新灵感
@@ -155,7 +136,7 @@ class StorageService {
         localStorage.setItem(this.KEYS.INSPIRATIONS, JSON.stringify(inspirations));
         
         return true;
-    }
+    },
 
     /**
      * 删除灵感
@@ -175,7 +156,7 @@ class StorageService {
         localStorage.setItem(this.KEYS.INSPIRATIONS, JSON.stringify(inspirations));
         
         return true;
-    }
+    },
 
     /**
      * 设置灵感收藏状态
@@ -187,7 +168,7 @@ class StorageService {
         return this.updateInspiration(id, {
             metadata: { isFavorite }
         });
-    }
+    },
 
     /**
      * 设置灵感评分
@@ -199,7 +180,7 @@ class StorageService {
         return this.updateInspiration(id, {
             metadata: { rating: Math.max(0, Math.min(5, rating)) }
         });
-    }
+    },
 
     /**
      * 保存应用设置
@@ -207,7 +188,7 @@ class StorageService {
      */
     saveSettings(settings) {
         localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(settings));
-    }
+    },
 
     /**
      * 获取应用设置
@@ -215,177 +196,66 @@ class StorageService {
      */
     getSettings() {
         const settingsJson = localStorage.getItem(this.KEYS.SETTINGS);
-        return settingsJson ? JSON.parse(settingsJson) : {
-            defaultProvider: 'siliconflow',
-            defaultModel: 'deepseek-ai/DeepSeek-V3',
-            longFormat: true,
-            useWeightedRandom: false
-        };
-    }
+        return settingsJson ? JSON.parse(settingsJson) : {};
+    },
 
     /**
-     * 保存API Key
-     * @param {string} provider 供应商名称
-     * @param {string} apiKey API Key
-     */
-    saveApiKey(provider, apiKey) {
-        const apiKeys = this.getApiKeys();
-        apiKeys[provider] = apiKey;
-        localStorage.setItem(this.KEYS.API_KEYS, JSON.stringify(apiKeys));
-    }
-
-    /**
-     * 获取API Key
-     * @param {string} provider 供应商名称
-     * @returns {string|null} API Key或null
-     */
-    getApiKey(provider) {
-        const apiKeys = this.getApiKeys();
-        return apiKeys[provider] || null;
-    }
-
-    /**
-     * 获取所有API Keys
-     * @returns {Object} API Keys对象
-     */
-    getApiKeys() {
-        const apiKeysJson = localStorage.getItem(this.KEYS.API_KEYS);
-        return apiKeysJson ? JSON.parse(apiKeysJson) : {};
-    }
-
-    /**
-     * 删除API Key
-     * @param {string} provider 供应商名称
-     * @returns {boolean} 是否成功
-     */
-    removeApiKey(provider) {
-        const apiKeys = this.getApiKeys();
-        if (apiKeys[provider]) {
-            delete apiKeys[provider];
-            localStorage.setItem(this.KEYS.API_KEYS, JSON.stringify(apiKeys));
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * 导出所有灵感为JSON
-     * @param {Array} inspirations 灵感数组（可选，默认为所有灵感）
+     * 导出灵感为JSON文件
+     * @param {Array} inspirations 要导出的灵感数组
      * @param {string} filename 文件名
      */
     exportInspirations(inspirations, filename = 'indienstein_inspirations.json') {
-        if (!inspirations) {
-            inspirations = this.getInspirations();
-        }
-        
         const dataStr = JSON.stringify(inspirations, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
         
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = filename;
-        link.click();
-    }
+        const exportLink = document.createElement('a');
+        exportLink.setAttribute('href', dataUri);
+        exportLink.setAttribute('download', filename);
+        exportLink.click();
+    },
 
     /**
-     * 导出单个灵感为文本
+     * 导出单个灵感为文本文件
      * @param {Object} inspiration 灵感对象
      * @param {string} filename 文件名
      */
     exportInspirationAsText(inspiration, filename = 'game_inspiration.txt') {
         if (!inspiration) return;
         
-        let content = '';
-        content += `游戏灵感生成报告\n`;
-        content += `==================\n\n`;
-        content += `生成时间: ${new Date(inspiration.createdTime).toLocaleString()}\n`;
-        content += `助手ID: ${inspiration.assistantId || '未知'}\n\n`;
+        let content = `# 游戏灵感\n\n`;
+        content += `## 生成时间\n${new Date(inspiration.createdTime).toLocaleString()}\n\n`;
         
-        if (inspiration.sourceVectors) {
-            content += `使用的元素:\n`;
-            Object.entries(inspiration.sourceVectors).forEach(([dimension, vector]) => {
-                content += `- ${dimension}: ${vector.name}\n`;
-            });
-            content += '\n';
-        }
-        
-        if (inspiration.userPrompt) {
-            content += `用户提示: ${inspiration.userPrompt}\n\n`;
-        }
-        
-        content += `生成内容:\n`;
-        content += `${inspiration.content}\n`;
-        
-        const dataBlob = new Blob([content], {type: 'text/plain'});
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(dataBlob);
-        link.download = filename;
-        link.click();
-    }
-
-    /**
-     * 清空所有数据
-     * @param {boolean} confirm 是否需要确认
-     */
-    clearAllData(confirm = true) {
-        if (confirm && !window.confirm('确定要清空所有数据吗？此操作不可恢复！')) {
-            return false;
-        }
-        
-        localStorage.removeItem(this.KEYS.INSPIRATIONS);
-        localStorage.removeItem(this.KEYS.SETTINGS);
-        localStorage.removeItem(this.KEYS.FAVORITES);
-        localStorage.removeItem(this.KEYS.API_KEYS);
-        
-        return true;
-    }
-
-    /**
-     * 获取存储统计信息
-     * @returns {Object} 统计信息
-     */
-    getStorageStats() {
-        const inspirations = this.getInspirations();
-        const favorites = this.getFavoriteInspirations();
-        const apiKeys = this.getApiKeys();
-        
-        return {
-            totalInspirations: inspirations.length,
-            totalFavorites: favorites.length,
-            hasApiKeys: Object.keys(apiKeys).length > 0,
-            storageUsed: this.getStorageUsage()
-        };
-    }
-
-    /**
-     * 获取存储空间使用情况
-     * @returns {Object} 存储使用情况
-     */
-    getStorageUsage() {
-        let total = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                total += localStorage[key].length + key.length;
+        content += `## 选择的元素\n`;
+        for (const [dimensionId, vector] of Object.entries(inspiration.sourceVectors)) {
+            const dimension = InfoSpace.getDimension(dimensionId);
+            if (dimension) {
+                content += `- ${dimension.name}: ${vector.name}\n`;
+                if (vector.description) {
+                    content += `  ${vector.description}\n`;
+                }
             }
         }
+        content += '\n';
         
-        return {
-            totalBytes: total,
-            totalKB: Math.round(total / 1024 * 100) / 100,
-            totalMB: Math.round(total / (1024 * 1024) * 100) / 100
-        };
-    }
+        if (inspiration.userPrompt) {
+            content += `## 用户提示\n${inspiration.userPrompt}\n\n`;
+        }
+        
+        content += `## 灵感内容\n${inspiration.content}\n`;
+        
+        const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+        
+        const exportLink = document.createElement('a');
+        exportLink.setAttribute('href', dataUri);
+        exportLink.setAttribute('download', filename);
+        exportLink.click();
+    },
 
     /**
      * 生成唯一ID
      * @returns {string} 唯一ID
      */
     generateUniqueId() {
-        return 'insp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
     }
-}
-
-// 为了兼容性，也创建一个静态实例
-if (typeof window !== 'undefined') {
-    window.StorageService = StorageService;
-} 
+}; 

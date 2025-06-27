@@ -1,6 +1,6 @@
 /**
- * Indienstein v2.0 - 样式表
- * 定义应用的视觉风格和动画效果，支持Tab布局
+ * Indienstein - 样式表
+ * 定义应用的视觉风格和动画效果
  */
 
 :root {
@@ -12,112 +12,18 @@
     --warning-color: #ffc107;
     --danger-color: #dc3545;
     --info-color: #17a2b8;
-    --tab-sidebar-width: 200px;
-    --content-min-height: calc(100vh - 76px);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
 }
 
 body {
     background-color: #f5f5f5;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow-x: hidden;
+    padding-bottom: 2rem;
 }
 
-/* 顶部导航栏 */
-.navbar {
-    z-index: 1030;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
+/* 导航栏 */
 .navbar-brand {
     font-weight: bold;
     letter-spacing: 0.5px;
-}
-
-/* Tab布局样式 */
-.container-fluid {
-    height: 100vh;
-}
-
-.row.g-0.h-100 {
-    height: var(--content-min-height);
-}
-
-/* 左侧Tab导航栏 */
-.tab-sidebar {
-    width: var(--tab-sidebar-width);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 1020;
-}
-
-.tab-sidebar .nav {
-    padding: 1rem 0;
-}
-
-.tab-sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.8);
-    border: none;
-    border-radius: 0;
-    padding: 1rem 1.5rem;
-    margin: 0.2rem 0;
-    transition: all 0.3s ease;
-    position: relative;
-    text-align: left;
-    background: transparent;
-    border-left: 3px solid transparent;
-}
-
-.tab-sidebar .nav-link:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-    border-left-color: rgba(255, 255, 255, 0.3);
-    transform: translateX(5px);
-}
-
-.tab-sidebar .nav-link.active {
-    color: white;
-    background: rgba(255, 255, 255, 0.2);
-    border-left-color: white;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.tab-sidebar .nav-link i {
-    font-size: 1.1rem;
-    width: 20px;
-}
-
-.tab-text {
-    font-weight: 500;
-}
-
-/* 内容区域 */
-.content-area {
-    background-color: #f8f9fa;
-    overflow-y: auto;
-    height: var(--content-min-height);
-}
-
-.content-wrapper {
-    min-height: calc(100vh - 120px);
-}
-
-.tab-content {
-    height: 100%;
-}
-
-.tab-pane {
-    background-color: #f8f9fa;
 }
 
 /* 卡片样式 */
@@ -125,59 +31,30 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border: none;
     margin-bottom: 1.5rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
     font-weight: 600;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
-/* 维度列表样式 */
-.dimension-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
+/* 维度列表 */
 .dimension-item {
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    padding: 0.5rem;
+    transition: background-color 0.2s;
 }
 
 .dimension-item:hover {
     background-color: rgba(0, 0, 0, 0.03);
-    transform: translateX(2px);
 }
 
-.dimension-item.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-
-/* 向量标签样式 */
+/* 向量标签 */
 .vector-tag {
-    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-    border-radius: 6px;
-    padding: 0.4rem 0.8rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
     margin-right: 0.5rem;
     margin-bottom: 0.5rem;
     display: inline-block;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.vector-tag:hover {
-    background: linear-gradient(135deg, #dee2e6 0%, #ced4da 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .vector-tag .dimension-name {
@@ -190,27 +67,9 @@ body {
     color: var(--dark-color);
 }
 
-/* 结果区域样式 */
-.result-content {
-    min-height: 300px;
-    max-height: 500px;
-    overflow-y: auto;
-    padding: 1rem;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-}
-
-/* 统计卡片样式 */
-.stat-card {
-    border-radius: 10px;
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    border-color: var(--primary-color);
-    transform: scale(1.05);
+/* 结果区域 */
+.min-height-200 {
+    min-height: 200px;
 }
 
 /* 生成中动画 */
@@ -248,171 +107,45 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* 批量生成结果样式 */
-.batch-results {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
+/* 批量生成结果 */
 .batch-result-item {
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 6px;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .batch-result-item:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-    transform: translateX(2px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .batch-result-item.active {
     border-left: 4px solid var(--primary-color);
-    background-color: rgba(111, 66, 193, 0.1);
 }
 
-/* 供应商卡片样式 */
-.provider-card {
-    transition: all 0.3s ease;
-}
-
-.provider-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.provider-card.border-success {
-    border-color: var(--success-color) !important;
-    border-width: 2px !important;
-}
-
-/* 向量卡片样式 */
-.vector-card {
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.vector-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* 维度分布进度条 */
-.dimension-distribution .progress {
-    height: 8px;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.dimension-distribution .progress-bar {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    transition: width 0.6s ease;
-}
-
-/* 模态框样式 */
+/* 模态框 */
 .modal-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #764ba2 100%);
+    background-color: var(--primary-color);
     color: white;
-    border-bottom: none;
 }
 
-.modal-content {
-    border: none;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+/* 长文本格式 */
+body.long-format .min-height-200 {
+    min-height: 400px;
 }
 
-/* 表单控件样式 */
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
-}
-
-.form-select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
-}
-
-/* 按钮样式 */
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, #5a67d8 100%);
-    border: none;
-    transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, var(--primary-color) 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
-}
-
-.btn-success {
-    background: linear-gradient(135deg, var(--success-color) 0%, #20c997 100%);
-    border: none;
-}
-
-.btn-warning {
-    background: linear-gradient(135deg, var(--warning-color) 0%, #fd7e14 100%);
-    border: none;
-}
-
-/* 通知样式 */
-.toast-container {
-    z-index: 1050;
-}
-
-.alert {
-    border: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* 动画效果 */
-.fade-in {
-    animation: fadeIn 0.5s ease-in-out;
-}
-
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(10px);
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .card-header h5 {
+        font-size: 1rem;
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0);
+    
+    .btn-sm {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.75rem;
     }
 }
 
-.slide-in-left {
-    animation: slideInLeft 0.3s ease-out;
-}
-
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Tab切换动画 */
-.tab-pane {
-    opacity: 0;
-    transform: translateX(20px);
-    transition: all 0.3s ease;
-}
-
-.tab-pane.show.active {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-/* 滚动条样式 */
+/* 自定义滚动条 */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -424,200 +157,73 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #c1c1c1, #999);
+    background: #c1c1c1;
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #a8a8a8, #777);
+    background: #a8a8a8;
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-    :root {
-        --tab-sidebar-width: 180px;
-    }
-    
-    .tab-sidebar .nav-link {
-        padding: 0.8rem 1rem;
-    }
-    
-    .content-wrapper {
-        padding: 1rem !important;
-    }
+/* 通知消息 */
+.toast-container {
+    z-index: 1050;
 }
 
-@media (max-width: 992px) {
-    :root {
-        --tab-sidebar-width: 160px;
-    }
-    
-    .tab-text {
-        font-size: 0.9rem;
-    }
-    
-    .card-header h5, .card-header h6 {
-        font-size: 1rem;
-    }
+/* 动画效果 */
+.fade-in {
+    animation: fadeIn 0.5s;
 }
 
-@media (max-width: 768px) {
-    /* 移动端：改为顶部Tab */
-    .tab-sidebar {
-        width: 100%;
-        height: auto;
-        background: var(--primary-color);
-    }
-    
-    .tab-sidebar .nav {
-        flex-direction: row;
-        justify-content: space-around;
-        padding: 0.5rem;
-        overflow-x: auto;
-    }
-    
-    .tab-sidebar .nav-link {
-        flex-direction: column;
-        padding: 0.5rem;
-        margin: 0 0.2rem;
-        border-left: none;
-        border-bottom: 3px solid transparent;
-        min-width: 80px;
-        text-align: center;
-    }
-    
-    .tab-sidebar .nav-link:hover,
-    .tab-sidebar .nav-link.active {
-        border-left: none;
-        border-bottom-color: white;
-        transform: none;
-    }
-    
-    .tab-sidebar .nav-link i {
-        margin-bottom: 0.2rem;
-        font-size: 1.2rem;
-    }
-    
-    .tab-text {
-        font-size: 0.75rem;
-    }
-    
-    .content-area {
-        height: calc(100vh - 140px);
-    }
-    
-    /* 隐藏底部工具按钮 */
-    .tab-sidebar .mt-auto {
-        display: none;
-    }
-    
-    /* 调整卡片间距 */
-    .content-wrapper {
-        padding: 0.5rem !important;
-    }
-    
-    .card {
-        margin-bottom: 1rem;
-    }
-    
-    /* 调整按钮大小 */
-    .btn-sm {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.75rem;
-    }
-    
-    /* 调整模态框 */
-    .modal-dialog {
-        margin: 1rem;
-    }
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-@media (max-width: 576px) {
-    .tab-sidebar .nav-link {
-        min-width: 60px;
-        padding: 0.4rem 0.2rem;
-    }
-    
-    .tab-text {
-        font-size: 0.7rem;
-    }
-    
-    .content-wrapper {
-        padding: 0.3rem !important;
-    }
-    
-    /* 简化界面元素 */
-    .d-flex.gap-2 .btn {
-        padding: 0.25rem 0.5rem;
-    }
-    
-    .result-content {
-        min-height: 200px;
-    }
+/* 工具提示 */
+.tooltip {
+    font-size: 0.8rem;
 }
 
-/* 特殊状态样式 */
-.online-status {
-    animation: pulse 2s infinite;
+/* 表单控件 */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
+/* 按钮样式 */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 
-/* 长文本模式 */
-body.long-format .result-content {
-    min-height: 400px;
+.btn-primary:hover {
+    background-color: #5a32a3;
+    border-color: #5a32a3;
 }
 
-/* 暗色主题支持 (可选) */
-@media (prefers-color-scheme: dark) {
-    body {
-        background-color: #1a1a1a;
-    }
-    
-    .content-area {
-        background-color: #1a1a1a;
-    }
-    
-    .tab-pane {
-        background-color: #1a1a1a;
-    }
-    
-    .card {
-        background-color: #2d3748;
-        color: white;
-    }
-    
-    .result-content {
-        background-color: #2d3748;
-        border-color: #4a5568;
-        color: white;
-    }
+.btn-success {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
 }
 
-/* 打印样式 */
-@media print {
-    .tab-sidebar,
-    .btn,
-    .modal {
-        display: none !important;
-    }
-    
-    .content-area {
-        width: 100% !important;
-    }
-    
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-    }
+.btn-warning {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+/* 灵感内容格式化 */
+#resultContent {
+    white-space: pre-wrap;
+    line-height: 1.6;
+}
+
+/* 批量生成进度条 */
+.progress {
+    height: 0.5rem;
+    border-radius: 1rem;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
 } 

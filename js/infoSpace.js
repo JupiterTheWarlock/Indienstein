@@ -3,28 +3,21 @@
  * 包含维度和向量数据
  */
 
-class InfoSpace {
-    // 静态属性存储维度数据
-    static dimensions = {};
-    static isInitialized = false;
+const InfoSpace = {
+    // 维度数据
+    dimensions: {},
     
     /**
      * 初始化信息空间
      */
-    static init() {
-        if (this.isInitialized) {
-            console.log('InfoSpace 已经初始化');
-            return;
-        }
-        
+    init() {
         this.loadDimensionData();
-        this.isInitialized = true;
-    }
+    },
     
     /**
      * 加载维度数据
      */
-    static loadDimensionData() {
+    loadDimensionData() {
         // 加载预定义的维度数据
         this.dimensions = {
             // 游戏主题
@@ -181,26 +174,24 @@ class InfoSpace {
         };
         
         console.log('InfoSpace: 已加载 ' + Object.keys(this.dimensions).length + ' 个维度');
-    }
+    },
     
     /**
      * 获取所有维度
      * @returns {Array} 维度数组
      */
-    static getAllDimensions() {
-        this.init(); // 确保已初始化
+    getAllDimensions() {
         return Object.values(this.dimensions);
-    }
+    },
     
     /**
      * 获取指定维度
      * @param {string} dimensionId 维度ID
      * @returns {Object|null} 维度对象或null
      */
-    static getDimension(dimensionId) {
-        this.init(); // 确保已初始化
+    getDimension(dimensionId) {
         return this.dimensions[dimensionId] || null;
-    }
+    },
     
     /**
      * 从维度中随机选择一个向量
@@ -208,205 +199,73 @@ class InfoSpace {
      * @param {boolean} useWeight 是否使用权重
      * @returns {Object|null} 向量对象或null
      */
-    static getRandomVector(dimensionId, useWeight = false) {
+    getRandomVector(dimensionId, useWeight = false) {
         const dimension = this.getDimension(dimensionId);
         if (!dimension || !dimension.vectors || dimension.vectors.length === 0) {
             return null;
         }
         
         if (useWeight) {
-            // 权重随机选择
+            // 使用权重随机
             const totalWeight = dimension.vectors.reduce((sum, vector) => sum + (vector.weight || 1), 0);
             let randomWeight = Math.random() * totalWeight;
             
             for (const vector of dimension.vectors) {
-                randomWeight -= (vector.weight || 1);
-                if (randomWeight <= 0) {
+                const weight = vector.weight || 1;
+                if (randomWeight <= weight) {
                     return vector;
                 }
+                randomWeight -= weight;
             }
-            // 如果权重计算有问题，返回最后一个
+            
+            // 防止浮点数精度问题，返回最后一个
             return dimension.vectors[dimension.vectors.length - 1];
         } else {
-            // 简单随机选择
+            // 普通随机
             const randomIndex = Math.floor(Math.random() * dimension.vectors.length);
             return dimension.vectors[randomIndex];
         }
-    }
-    
+    },
+
     /**
-     * 从多个维度中各选择一个向量
+     * 从多个维度选择向量
      * @param {Array} dimensionIds 维度ID数组
      * @returns {Object} 维度ID到向量的映射
      */
-    static selectFromDimensions(dimensionIds) {
+    selectFromDimensions(dimensionIds) {
         const result = {};
         
-        if (!dimensionIds || dimensionIds.length === 0) {
-            return result;
-        }
-        
-        dimensionIds.forEach(id => {
+        for (const id of dimensionIds) {
             const vector = this.getRandomVector(id);
             if (vector) {
                 result[id] = vector;
             }
-        });
+        }
         
         return result;
-    }
-    
+    },
+
     /**
      * 获取维度中的所有向量
      * @param {string} dimensionId 维度ID
      * @returns {Array} 向量数组
      */
-    static getVectorsFromDimension(dimensionId) {
-        const dimension = this.getDimension(dimensionId);
-        return dimension ? dimension.vectors || [] : [];
-    }
-    
+    getVectorsFromDimension(dimensionId) {
+        const dimension = this.dimensions[dimensionId];
+        return dimension ? dimension.vectors : [];
+    },
+
     /**
      * 获取维度统计信息
-     * @returns {Object} 统计信息
+     * @returns {Object} 维度名称到向量数量的映射
      */
-    static getDimensionStats() {
-        this.init(); // 确保已初始化
-        
-        const stats = {
-            totalDimensions: 0,
-            totalVectors: 0,
-            dimensionDetails: {}
-        };
+    getDimensionStats() {
+        const stats = {};
         
         for (const [id, dimension] of Object.entries(this.dimensions)) {
-            const vectorCount = dimension.vectors ? dimension.vectors.length : 0;
-            stats.totalDimensions++;
-            stats.totalVectors += vectorCount;
-            stats.dimensionDetails[id] = {
-                name: dimension.name,
-                vectorCount: vectorCount,
-                description: dimension.description
-            };
+            stats[dimension.name] = dimension.vectors.length;
         }
         
         return stats;
     }
-    
-    /**
-     * 添加自定义维度
-     * @param {Object} dimension 维度对象
-     * @returns {boolean} 是否添加成功
-     */
-    static addDimension(dimension) {
-        if (!dimension || !dimension.id) {
-            console.error('维度对象无效');
-            return false;
-        }
-        
-        this.init(); // 确保已初始化
-        
-        if (this.dimensions[dimension.id]) {
-            console.warn(`维度 ${dimension.id} 已存在，将被覆盖`);
-        }
-        
-        this.dimensions[dimension.id] = dimension;
-        console.log(`已添加维度: ${dimension.name} (${dimension.id})`);
-        return true;
-    }
-    
-    /**
-     * 移除维度
-     * @param {string} dimensionId 维度ID
-     * @returns {boolean} 是否移除成功
-     */
-    static removeDimension(dimensionId) {
-        this.init(); // 确保已初始化
-        
-        if (!this.dimensions[dimensionId]) {
-            console.warn(`维度 ${dimensionId} 不存在`);
-            return false;
-        }
-        
-        delete this.dimensions[dimensionId];
-        console.log(`已移除维度: ${dimensionId}`);
-        return true;
-    }
-    
-    /**
-     * 重置所有数据
-     */
-    static reset() {
-        this.dimensions = {};
-        this.isInitialized = false;
-        console.log('InfoSpace 已重置');
-    }
-    
-    /**
-     * 导出维度数据
-     * @returns {Object} 维度数据
-     */
-    static exportData() {
-        this.init(); // 确保已初始化
-        return JSON.parse(JSON.stringify(this.dimensions));
-    }
-    
-    /**
-     * 导入维度数据
-     * @param {Object} data 维度数据
-     * @returns {boolean} 是否导入成功
-     */
-    static importData(data) {
-        if (!data || typeof data !== 'object') {
-            console.error('导入数据无效');
-            return false;
-        }
-        
-        try {
-            this.dimensions = data;
-            this.isInitialized = true;
-            console.log(`已导入 ${Object.keys(this.dimensions).length} 个维度`);
-            return true;
-        } catch (error) {
-            console.error('导入数据失败:', error);
-            return false;
-        }
-    }
-    
-    /**
-     * 搜索向量
-     * @param {string} keyword 关键词
-     * @returns {Array} 匹配的向量数组
-     */
-    static searchVectors(keyword) {
-        this.init(); // 确保已初始化
-        
-        if (!keyword || typeof keyword !== 'string') {
-            return [];
-        }
-        
-        const results = [];
-        const lowerKeyword = keyword.toLowerCase();
-        
-        for (const dimension of Object.values(this.dimensions)) {
-            if (!dimension.vectors) continue;
-            
-            for (const vector of dimension.vectors) {
-                if (vector.name.toLowerCase().includes(lowerKeyword) ||
-                    (vector.description && vector.description.toLowerCase().includes(lowerKeyword))) {
-                    results.push({
-                        dimension: dimension,
-                        vector: vector
-                    });
-                }
-            }
-        }
-        
-        return results;
-    }
-}
-
-// 导出到全局
-if (typeof window !== 'undefined') {
-    window.InfoSpace = InfoSpace;
-} 
+}; 
