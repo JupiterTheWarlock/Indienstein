@@ -23,7 +23,6 @@ const UI = {
         this.bindEvents();
         this.setupDimensionSelect();
         this.setupOverviewPage();
-        this.setupInfoSpacePage();
         this.loadIndiensteinSettings(); // 加载Indienstein页面的临时设置
         this.updateModelOptions(); // 初始化模型选项
         
@@ -39,7 +38,6 @@ const UI = {
         // Tab 相关
         this.elements.overviewTab = document.getElementById('v-pills-overview-tab');
         this.elements.indiensteinTab = document.getElementById('v-pills-indienstein-tab');
-        this.elements.infospaceTab = document.getElementById('v-pills-infospace-tab');
         this.elements.formatToggleContainer = document.getElementById('formatToggleContainer');
         
         // 新的维度选择
@@ -70,16 +68,12 @@ const UI = {
         this.elements.temperatureValue = document.getElementById('temperatureValue');
         this.elements.maxTokensInput = document.getElementById('maxTokensInput');
         
-        // 信息空间页面
-        this.elements.dimensionsListInfo = document.getElementById('dimensionsListInfo');
-        this.elements.dimensionDetailContent = document.getElementById('dimensionDetailContent');
-        
         // 格式切换
         this.elements.formatToggle = document.getElementById('formatToggle');
         
-        // 调试信息
-        this.elements.debugInfo = document.getElementById('debugInfo');
-        this.elements.clearDebugBtn = document.getElementById('clearDebugBtn');
+        // 维度详情模态框
+        this.elements.dimensionDetailModal = document.getElementById('dimensionDetailModal');
+        this.elements.dimensionDetailModalContent = document.getElementById('dimensionDetailModalContent');
         
         // 检查关键元素是否存在
         const requiredElements = [
@@ -108,10 +102,6 @@ const UI = {
         });
         
         this.elements.overviewTab.addEventListener('shown.bs.tab', () => {
-            this.elements.formatToggleContainer.style.display = 'none';
-        });
-        
-        this.elements.infospaceTab.addEventListener('shown.bs.tab', () => {
             this.elements.formatToggleContainer.style.display = 'none';
         });
         
@@ -152,9 +142,6 @@ const UI = {
         
         // 格式切换
         this.elements.formatToggle.addEventListener('change', () => this.toggleFormat());
-        
-        // 调试信息
-        this.elements.clearDebugBtn.addEventListener('click', () => this.clearDebugInfo());
     },
     
     /**
@@ -598,12 +585,43 @@ const UI = {
         this.showMessage(`${AIService.providers[providerId].name} API Key 已保存`, 'success');
     },
     
+
+    
+
+    
+    /**
+     * 加载Indienstein页面设置（不保存的临时设置）
+     */
+    loadIndiensteinSettings() {
+        const settings = AIService.currentSettings;
+        
+        this.elements.providerSelect.value = settings.provider;
+        this.elements.temperatureInput.value = settings.temperature;
+        this.elements.temperatureValue.textContent = settings.temperature;
+        this.elements.maxTokensInput.value = settings.maxTokens;
+        
+        this.updateModelOptions();
+    },
+    
+    /**
+     * 从AIService设置更新UI界面
+     */
+    updateUIFromSettings() {
+        const settings = AIService.currentSettings;
+        
+        this.elements.temperatureInput.value = settings.temperature;
+        this.elements.temperatureValue.textContent = settings.temperature;
+        this.elements.maxTokensInput.value = settings.maxTokens;
+        },
+    
     /**
      * 生成信息空间概览
      */
     generateInfoSpaceOverview() {
         const container = this.elements.infoSpaceOverview;
         const dimensions = InfoSpace.getAllDimensions();
+        
+        if (!container) return;
         
         // 计算统计数据
         const totalVectors = dimensions.reduce((sum, d) => sum + d.vectors.length, 0);
@@ -640,15 +658,13 @@ const UI = {
             <div class="row">
                 ${dimensions.map(dimension => `
                     <div class="col-md-4 mb-3">
-                        <div class="card h-100">
+                        <div class="card h-100 dimension-card" style="cursor: pointer;" onclick="UI.showDimensionDetailModal('${dimension.id}')">
                             <div class="card-body">
                                 <h6 class="card-title text-primary">${dimension.name}</h6>
                                 <p class="card-text text-muted small">${dimension.description}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="badge bg-primary">${dimension.vectors.length} 个向量</span>
-                                    <button class="btn btn-outline-primary btn-sm" onclick="UI.switchToInfoSpace('${dimension.id}')">
-                                        查看详情
-                                    </button>
+                                    <span class="text-muted small">点击查看详情</span>
                                 </div>
                             </div>
                         </div>
@@ -657,129 +673,65 @@ const UI = {
             </div>
         `;
     },
-    
+
     /**
-     * 切换到信息空间页面并显示指定维度
+     * 显示维度详情模态框
      * @param {string} dimensionId 维度ID
      */
-    switchToInfoSpace(dimensionId) {
-        // 切换到信息空间标签页
-        const infospaceTab = new bootstrap.Tab(this.elements.infospaceTab);
-        infospaceTab.show();
-        
-        // 延迟一下以确保页面切换完成
-        setTimeout(() => {
-            this.showDimensionDetail(dimensionId);
-        }, 100);
-    },
-    
-    /**
-     * 加载Indienstein页面设置（不保存的临时设置）
-     */
-    loadIndiensteinSettings() {
-        const settings = AIService.currentSettings;
-        
-        this.elements.providerSelect.value = settings.provider;
-        this.elements.temperatureInput.value = settings.temperature;
-        this.elements.temperatureValue.textContent = settings.temperature;
-        this.elements.maxTokensInput.value = settings.maxTokens;
-        
-        this.updateModelOptions();
-    },
-    
-    /**
-     * 从AIService设置更新UI界面
-     */
-    updateUIFromSettings() {
-        const settings = AIService.currentSettings;
-        
-        this.elements.temperatureInput.value = settings.temperature;
-        this.elements.temperatureValue.textContent = settings.temperature;
-        this.elements.maxTokensInput.value = settings.maxTokens;
-    },
-    
-    /**
-     * 设置信息空间页面
-     */
-    setupInfoSpacePage() {
-        this.generateDimensionsListInfo();
-    },
-    
-    /**
-     * 生成信息空间维度列表
-     */
-    generateDimensionsListInfo() {
-        const container = this.elements.dimensionsListInfo;
-        const dimensions = InfoSpace.getAllDimensions();
-        
-        container.innerHTML = '';
-        
-        dimensions.forEach(dimension => {
-            const item = document.createElement('a');
-            item.className = 'list-group-item list-group-item-action dimension-list-item';
-            item.href = '#';
-            item.dataset.dimensionId = dimension.id;
-            
-            item.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1">${dimension.name}</h6>
-                        <small class="text-muted">${dimension.description}</small>
-                    </div>
-                    <span class="badge bg-primary rounded-pill">${dimension.vectors.length}</span>
-                </div>
-            `;
-            
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showDimensionDetail(dimension.id);
-            });
-            
-            container.appendChild(item);
-        });
-    },
-    
-    /**
-     * 显示维度详情
-     * @param {string} dimensionId 维度ID
-     */
-    showDimensionDetail(dimensionId) {
+    showDimensionDetailModal(dimensionId) {
         const dimension = InfoSpace.getDimension(dimensionId);
         if (!dimension) return;
         
-        // 更新选中状态
-        const items = this.elements.dimensionsListInfo.querySelectorAll('.dimension-list-item');
-        items.forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.dimensionId === dimensionId) {
-                item.classList.add('active');
-            }
-        });
+        // 设置模态框标题
+        document.getElementById('dimensionDetailModalLabel').textContent = `维度详情 - ${dimension.name}`;
         
         // 生成向量详情内容
-        const content = this.elements.dimensionDetailContent;
-        
-        const vectorsHtml = dimension.vectors.map(vector => `
-            <div class="vector-item">
-                <div class="vector-name">${vector.name}</div>
-                <div class="vector-description">${vector.description}</div>
+        const vectorsHtml = dimension.vectors.map((vector, index) => `
+            <div class="card mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="card-title text-primary mb-1">${vector.name}</h6>
+                            <p class="card-text text-muted small mb-0">${vector.description}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-secondary">权重: ${vector.weight || 1}</span>
+                            <small class="text-muted d-block mt-1">#${index + 1}</small>
+                        </div>
+                    </div>
+                </div>
             </div>
         `).join('');
         
-        content.innerHTML = `
+        this.elements.dimensionDetailModalContent.innerHTML = `
             <div class="mb-4">
-                <h5 class="text-primary">${dimension.name}</h5>
-                <p class="text-muted">${dimension.description}</p>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="badge bg-primary">${dimension.vectors.length} 个信息向量</span>
-                    <small class="text-muted">权重: ${dimension.vectors[0]?.weight || 1}</small>
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="text-primary mb-2">${dimension.name}</h5>
+                        <p class="text-muted mb-3">${dimension.description}</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="bg-light p-3 rounded">
+                            <h4 class="text-success mb-1">${dimension.vectors.length}</h4>
+                            <small class="text-muted">个信息向量</small>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="vector-grid">
-                ${vectorsHtml}
+            <div class="mb-3">
+                <h6 class="text-secondary mb-3">
+                    <i class="bi bi-list-ul"></i> 所有信息向量
+                </h6>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${vectorsHtml}
+                </div>
             </div>
         `;
+        
+        // 显示模态框
+        const modal = new bootstrap.Modal(this.elements.dimensionDetailModal);
+        modal.show();
     },
     
     /**
@@ -788,39 +740,16 @@ const UI = {
      * @param {string} type 信息类型 (log, warn, error)
      */
     addDebugInfo(message, type = 'log') {
-        const timestamp = new Date().toLocaleTimeString();
-        const colorClass = {
-            'log': 'text-primary',
-            'warn': 'text-warning', 
-            'error': 'text-danger'
-        }[type] || 'text-muted';
-        
-        const debugDiv = document.createElement('div');
-        debugDiv.className = `debug-entry ${colorClass} mb-1`;
-        debugDiv.innerHTML = `[${timestamp}] ${message}`;
-        
-        // 如果是第一条记录，清空默认文本
-        if (this.elements.debugInfo.children.length === 1 && 
-            this.elements.debugInfo.children[0].classList.contains('text-muted')) {
-            this.elements.debugInfo.innerHTML = '';
-        }
-        
-        this.elements.debugInfo.appendChild(debugDiv);
-        
-        // 自动滚动到底部
-        this.elements.debugInfo.scrollTop = this.elements.debugInfo.scrollHeight;
-        
-        // 限制最大条目数
-        while (this.elements.debugInfo.children.length > 100) {
-            this.elements.debugInfo.removeChild(this.elements.debugInfo.firstChild);
-        }
+        // 调试信息已移除，保留方法签名避免错误
+        console.log(`[${type.toUpperCase()}] ${message}`);
     },
     
     /**
      * 清空调试信息
      */
     clearDebugInfo() {
-        this.elements.debugInfo.innerHTML = '<div class="text-muted">调试信息和错误日志会显示在这里...</div>';
+        // 调试信息已移除，保留方法签名避免错误
+        console.clear();
     },
     
     /**

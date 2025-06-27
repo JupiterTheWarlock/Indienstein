@@ -91,35 +91,9 @@ window.addEventListener('unhandledrejection', function(event) {
 });
 
 /**
- * 设置console重定向到调试窗口
+ * 设置console重定向到调试窗口（已简化）
  */
 function setupConsoleRedirect() {
-    // 保存原始的console方法
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-    
-    // 重定向console.log
-    console.log = function(...args) {
-        originalLog.apply(console, args);
-        if (UI && UI.addDebugInfo) {
-            UI.addDebugInfo(args.join(' '), 'log');
-        }
-    };
-    
-    // 重定向console.warn
-    console.warn = function(...args) {
-        originalWarn.apply(console, args);
-        if (UI && UI.addDebugInfo) {
-            UI.addDebugInfo(args.join(' '), 'warn');
-        }
-    };
-    
-    // 重定向console.error
-    console.error = function(...args) {
-        originalError.apply(console, args);
-        if (UI && UI.addDebugInfo) {
-            UI.addDebugInfo(args.join(' '), 'error');
-        }
-    };
+    // 调试信息功能已移除，保留函数结构避免错误
+    console.log('Console 重定向设置完成（调试信息已移除）');
 } 
