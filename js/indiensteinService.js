@@ -64,7 +64,9 @@ const IndiensteinService = {
         
         // 添加选中的向量信息
         const vectorsInfo = [];
-        for (const [dimensionId, vector] of Object.entries(selectedVectors)) {
+        for (const [key, vector] of Object.entries(selectedVectors)) {
+            // 处理可能包含索引的维度键（如：theme_1）
+            const dimensionId = key.includes('_') ? key.split('_')[0] : key;
             const dimension = InfoSpace.getDimension(dimensionId);
             if (dimension) {
                 vectorsInfo.push(`【${dimension.name}】: ${vector.name}`);
@@ -214,7 +216,16 @@ ${vectorsInfo.join('\n')}`;
                 // 随机选择向量
                 let selectedVectors;
                 if (dimensionIds.length > 0) {
-                    selectedVectors = this.selectFromDimensionIds(dimensionIds, useWeight);
+                    // 处理重复的维度ID，每个ID都单独选择一个向量
+                    selectedVectors = {};
+                    dimensionIds.forEach((dimensionId, index) => {
+                        const vector = this.selectRandomVector(dimensionId, useWeight);
+                        if (vector) {
+                            // 如果有重复维度，给每个实例一个唯一键
+                            const key = selectedVectors[dimensionId] ? `${dimensionId}_${index}` : dimensionId;
+                            selectedVectors[key] = vector;
+                        }
+                    });
                 } else {
                     selectedVectors = this.selectFromAllDimensions(useWeight);
                 }

@@ -175,101 +175,90 @@
                         </div>
                         
                         <div class="row">
-                            <!-- 左侧面板：维度选择 -->
-                            <div class="col-md-3">
+                            <!-- 左侧面板：灵感生成 -->
+                            <div class="col-md-8">
                                 <div class="card">
-                                    <div class="card-header bg-primary text-white">
-                                        <h5 class="card-title mb-0">维度选择</h5>
+                                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0">灵感生成</h5>
+                                        <button id="generateBtn" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-stars"></i> 生成灵感
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- 维度选择区域 -->
+                                        <div class="mb-3">
+                                            <label class="form-label">选择维度：</label>
+                                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                                <select id="dimensionSelect" class="form-select" style="width: auto;">
+                                                    <option value="">请选择维度...</option>
+                                                    <!-- 维度选项将通过JS动态生成 -->
+                                                </select>
+                                                <button id="addDimensionBtn" class="btn btn-outline-primary btn-sm" disabled>
+                                                    <i class="bi bi-plus"></i> 添加
+                                                </button>
+                                            </div>
+                                            <div id="selectedDimensionsContainer" class="d-flex flex-wrap gap-2">
+                                                <!-- 已选择的维度将在这里显示 -->
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="userPrompt" class="form-label">自定义提示词（可选）：</label>
+                                            <textarea id="userPrompt" class="form-control" rows="2" placeholder="添加额外的要求或方向..."></textarea>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-header bg-light">
+                                                <h6 class="mb-0">生成结果</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="resultContent" class="border rounded p-3 result-content-container">
+                                                    <div class="text-center text-muted">生成的内容将显示在这里</div>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer bg-light d-flex justify-content-between">
+                                                <button id="clearResultBtn" class="btn btn-sm btn-outline-warning">
+                                                    <i class="bi bi-trash"></i> 清空历史
+                                                </button>
+                                                <button id="exportBtn" class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="bi bi-download"></i> 导出
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 右侧面板：生成配置 -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="card-title mb-0">生成配置</h5>
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-3">
-                                            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">全选</button>
-                                            <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">取消全选</button>
+                                            <label for="batchCount" class="form-label">生成数量：</label>
+                                            <input type="number" id="batchCount" class="form-control" min="1" max="10" value="1">
                                         </div>
-                                        <div id="dimensionsList" class="list-group">
-                                            <!-- 维度列表将通过JS动态生成 -->
+                                        <div class="mb-3">
+                                            <label for="batchDelay" class="form-label">请求间隔（秒）：</label>
+                                            <input type="number" id="batchDelay" class="form-control" min="0" max="10" value="1">
+                                        </div>
+                                        
+                                        <div id="batchProgress" class="progress mt-3 d-none">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <small class="text-muted">
+                                                💡 提示：生成数量为1时相当于单次生成，大于1时将进行批量生成。<br><br>
+                                                🎲 无需选择维度也可以生成，系统会从所有维度中随机选择。<br><br>
+                                                ⭐ 可以多次添加同一维度。
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-            <!-- 中央区域：生成结果 -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">灵感生成</h5>
-                        <div>
-                            <button id="randomBtn" class="btn btn-sm btn-light me-2">
-                                <i class="bi bi-shuffle"></i> 随机选择
-                            </button>
-                            <button id="generateBtn" class="btn btn-sm btn-warning" disabled>
-                                <i class="bi bi-stars"></i> 生成灵感
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="selectedVectors" class="mb-3">
-                            <h6>已选择的元素：</h6>
-                            <div id="vectorsContainer" class="d-flex flex-wrap gap-2">
-                                <div class="text-muted">点击"随机选择"按钮开始...</div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="userPrompt" class="form-label">自定义提示词（可选）：</label>
-                            <textarea id="userPrompt" class="form-control" rows="2" placeholder="添加额外的要求或方向..."></textarea>
-                        </div>
-
-                        <div class="card">
-                            <div class="card-header bg-light">
-                                <h6 class="mb-0">生成结果</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="resultContent" class="border rounded p-3 result-content-container">
-                                    <div class="text-center text-muted">生成的内容将显示在这里</div>
-                                </div>
-                            </div>
-                            <div class="card-footer bg-light d-flex justify-content-between">
-                                <button id="clearResultBtn" class="btn btn-sm btn-outline-warning">
-                                    <i class="bi bi-trash"></i> 清空历史
-                                </button>
-                                <button id="exportBtn" class="btn btn-sm btn-outline-secondary" disabled>
-                                    <i class="bi bi-download"></i> 导出
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右侧面板：生成配置 -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="card-title mb-0">生成配置</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="batchCount" class="form-label">生成数量：</label>
-                            <input type="number" id="batchCount" class="form-control" min="1" max="10" value="1">
-                        </div>
-                        <div class="mb-3">
-                            <label for="batchDelay" class="form-label">请求间隔（秒）：</label>
-                            <input type="number" id="batchDelay" class="form-control" min="0" max="10" value="1">
-                        </div>
-                        
-                        <div id="batchProgress" class="progress mt-3 d-none">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                💡 提示：生成数量为1时相当于单次生成，大于1时将进行批量生成
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
                     <!-- 信息空间页面 -->
                     <div class="tab-pane fade" id="v-pills-infospace" role="tabpanel" aria-labelledby="v-pills-infospace-tab">

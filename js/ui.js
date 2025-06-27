@@ -10,8 +10,7 @@ const UI = {
     // 状态变量
     state: {
         isGenerating: false,
-        selectedDimensions: [],
-        currentSelectedVectors: {},
+        selectedDimensions: [], // 存储选中的维度ID数组，可重复
         allGeneratedResults: [], // 存储所有生成的结果
         currentBatchIndex: -1
     },
@@ -22,12 +21,11 @@ const UI = {
     init() {
         this.cacheElements();
         this.bindEvents();
-        this.setupDimensionsList();
+        this.setupDimensionSelect();
         this.setupOverviewPage();
         this.setupInfoSpacePage();
         this.loadIndiensteinSettings(); // 加载Indienstein页面的临时设置
         this.updateModelOptions(); // 初始化模型选项
-        this.updateGenerateButton();
         
         // 确保默认配置正确
         AIService.resetTemperatureAndTokens();
@@ -44,16 +42,14 @@ const UI = {
         this.elements.infospaceTab = document.getElementById('v-pills-infospace-tab');
         this.elements.formatToggleContainer = document.getElementById('formatToggleContainer');
         
-        // 维度选择
-        this.elements.dimensionsList = document.getElementById('dimensionsList');
-        this.elements.selectAllBtn = document.getElementById('selectAllBtn');
-        this.elements.deselectAllBtn = document.getElementById('deselectAllBtn');
+        // 新的维度选择
+        this.elements.dimensionSelect = document.getElementById('dimensionSelect');
+        this.elements.addDimensionBtn = document.getElementById('addDimensionBtn');
+        this.elements.selectedDimensionsContainer = document.getElementById('selectedDimensionsContainer');
         
         // 生成区域
-        this.elements.randomBtn = document.getElementById('randomBtn');
         this.elements.generateBtn = document.getElementById('generateBtn');
         this.elements.userPrompt = document.getElementById('userPrompt');
-        this.elements.vectorsContainer = document.getElementById('vectorsContainer');
         this.elements.resultContent = document.getElementById('resultContent');
         this.elements.exportBtn = document.getElementById('exportBtn');
         this.elements.clearResultBtn = document.getElementById('clearResultBtn');
@@ -87,7 +83,7 @@ const UI = {
         
         // 检查关键元素是否存在
         const requiredElements = [
-            'dimensionsList', 'generateBtn', 'resultContent', 'batchProgress',
+            'dimensionSelect', 'addDimensionBtn', 'selectedDimensionsContainer', 'generateBtn', 'resultContent', 'batchProgress',
             'providerSelect', 'modelSelect', 'temperatureInput', 'maxTokensInput'
         ];
         
@@ -120,11 +116,10 @@ const UI = {
         });
         
         // 维度选择
-        this.elements.selectAllBtn.addEventListener('click', () => this.selectAllDimensions());
-        this.elements.deselectAllBtn.addEventListener('click', () => this.deselectAllDimensions());
+        this.elements.dimensionSelect.addEventListener('change', () => this.updateAddDimensionButton());
+        this.elements.addDimensionBtn.addEventListener('click', () => this.addDimension());
         
         // 生成区域
-        this.elements.randomBtn.addEventListener('click', () => this.randomSelectVectors());
         this.elements.generateBtn.addEventListener('click', () => this.generateInspiration());
         this.elements.exportBtn.addEventListener('click', () => this.exportAllResults());
         this.elements.clearResultBtn.addEventListener('click', () => this.clearResult());
@@ -163,139 +158,108 @@ const UI = {
     },
     
     /**
-     * 设置维度列表
+     * 设置维度选择下拉框
      */
-    setupDimensionsList() {
+    setupDimensionSelect() {
         const dimensions = InfoSpace.getAllDimensions();
-        const dimensionsList = this.elements.dimensionsList;
-        dimensionsList.innerHTML = '';
+        const dimensionSelect = this.elements.dimensionSelect;
         
+        // 清空并添加默认选项
+        dimensionSelect.innerHTML = '<option value="">请选择维度...</option>';
+        
+        // 添加维度选项
         dimensions.forEach(dimension => {
-            const item = document.createElement('div');
-            item.className = 'list-group-item dimension-item';
-            item.dataset.id = dimension.id;
-            
-            item.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>${dimension.name}</strong>
-                        <div class="text-muted small">${dimension.vectors.length} 个词汇</div>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="check_${dimension.id}">
-                    </div>
-                </div>
-            `;
-            
-            item.addEventListener('click', (e) => {
-                if (e.target.type !== 'checkbox') {
-                    const checkbox = item.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-                    this.updateSelectedDimensions();
-                }
-            });
-            
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            checkbox.addEventListener('change', () => {
-                this.updateSelectedDimensions();
-            });
-            
-            dimensionsList.appendChild(item);
+            const option = document.createElement('option');
+            option.value = dimension.id;
+            option.textContent = `${dimension.name} (${dimension.vectors.length}个元素)`;
+            dimensionSelect.appendChild(option);
         });
         
-        // 默认全选
-        this.selectAllDimensions();
+        console.log('UI: 维度选择下拉框设置完成');
     },
     
     /**
-     * 全选维度
+     * 更新添加维度按钮状态
      */
-    selectAllDimensions() {
-        const checkboxes = this.elements.dimensionsList.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = true;
-        });
-        this.updateSelectedDimensions();
+    updateAddDimensionButton() {
+        const selectedValue = this.elements.dimensionSelect.value;
+        this.elements.addDimensionBtn.disabled = !selectedValue;
     },
     
     /**
-     * 取消全选维度
+     * 添加维度
      */
-    deselectAllDimensions() {
-        const checkboxes = this.elements.dimensionsList.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        this.updateSelectedDimensions();
-    },
-    
-    /**
-     * 更新选中的维度
-     */
-    updateSelectedDimensions() {
-        const checkboxes = this.elements.dimensionsList.querySelectorAll('input[type="checkbox"]');
-        const selectedDimensions = [];
+    addDimension() {
+        const selectedValue = this.elements.dimensionSelect.value;
+        if (!selectedValue) return;
         
-        checkboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                const dimensionId = checkbox.id.replace('check_', '');
-                selectedDimensions.push(dimensionId);
-            }
-        });
+        const dimension = InfoSpace.getDimension(selectedValue);
+        if (!dimension) return;
         
-        this.state.selectedDimensions = selectedDimensions;
-        this.updateGenerateButton();
+        // 添加到状态数组（允许重复）
+        this.state.selectedDimensions.push(selectedValue);
+        
+        // 更新显示
+        this.updateSelectedDimensionsDisplay();
+        
+        // 重置选择框
+        this.elements.dimensionSelect.value = '';
+        this.updateAddDimensionButton();
+        
+        console.log('已添加维度:', dimension.name, '当前选中维度:', this.state.selectedDimensions);
     },
     
     /**
-     * 更新生成按钮状态
+     * 更新已选择维度的显示
      */
-    updateGenerateButton() {
-        const hasSelectedDimensions = this.state.selectedDimensions.length > 0;
-        
-        this.elements.generateBtn.disabled = this.state.isGenerating || !hasSelectedDimensions;
-        this.elements.randomBtn.disabled = this.state.isGenerating || this.state.selectedDimensions.length === 0;
-    },
-    
-    /**
-     * 随机选择向量
-     */
-    randomSelectVectors() {
-        if (this.state.selectedDimensions.length === 0) {
-            this.showMessage('请先选择至少一个维度', 'warning');
-            return;
-        }
-        
-        const selectedVectors = InfoSpace.selectFromDimensions(this.state.selectedDimensions);
-        this.state.currentSelectedVectors = selectedVectors;
-        this.displaySelectedVectors();
-        this.updateGenerateButton();
-    },
-    
-    /**
-     * 显示选中的向量
-     */
-    displaySelectedVectors() {
-        const container = this.elements.vectorsContainer;
+    updateSelectedDimensionsDisplay() {
+        const container = this.elements.selectedDimensionsContainer;
         container.innerHTML = '';
         
-        const selectedVectors = this.state.currentSelectedVectors;
-        if (Object.keys(selectedVectors).length === 0) {
-            container.innerHTML = '<div class="text-muted">点击"随机选择"按钮开始...</div>';
+        if (this.state.selectedDimensions.length === 0) {
             return;
         }
         
-        for (const [dimensionId, vector] of Object.entries(selectedVectors)) {
+        // 统计每个维度的数量
+        const dimensionCounts = {};
+        this.state.selectedDimensions.forEach(dimensionId => {
+            dimensionCounts[dimensionId] = (dimensionCounts[dimensionId] || 0) + 1;
+        });
+        
+        // 显示维度标签
+        Object.entries(dimensionCounts).forEach(([dimensionId, count]) => {
             const dimension = InfoSpace.getDimension(dimensionId);
             if (dimension) {
                 const tag = document.createElement('div');
-                tag.className = 'vector-tag';
+                tag.className = 'badge bg-primary me-2 mb-2 d-flex align-items-center';
+                tag.style.fontSize = '0.9em';
+                
+                const countText = count > 1 ? ` (×${count})` : '';
                 tag.innerHTML = `
-                    <span class="dimension-name">${dimension.name}:</span>
-                    <span class="vector-name">${vector.name}</span>
+                    ${dimension.name}${countText}
+                    <button type="button" class="btn-close btn-close-white ms-2" aria-label="Remove" style="font-size: 0.7em;"></button>
                 `;
+                
+                // 点击删除按钮时移除一个该维度
+                const closeBtn = tag.querySelector('.btn-close');
+                closeBtn.addEventListener('click', () => {
+                    this.removeDimension(dimensionId);
+                });
+                
                 container.appendChild(tag);
             }
+        });
+    },
+    
+    /**
+     * 移除维度（移除一个实例）
+     */
+    removeDimension(dimensionId) {
+        const index = this.state.selectedDimensions.indexOf(dimensionId);
+        if (index > -1) {
+            this.state.selectedDimensions.splice(index, 1);
+            this.updateSelectedDimensionsDisplay();
+            console.log('已移除维度:', dimensionId, '当前选中维度:', this.state.selectedDimensions);
         }
     },
     
@@ -304,11 +268,6 @@ const UI = {
      */
     async generateInspiration() {
         if (this.state.isGenerating) return;
-        
-        if (this.state.selectedDimensions.length === 0) {
-            this.showMessage('请先选择至少一个维度', 'warning');
-            return;
-        }
         
         // 检查API设置
         if (!this.checkApiSettings()) {
@@ -429,7 +388,9 @@ const UI = {
             content += `**生成时间**: ${new Date(result.createdTime).toLocaleString()}\n\n`;
             
             content += `**选择的元素**:\n`;
-            for (const [dimensionId, vector] of Object.entries(result.sourceVectors)) {
+            for (const [key, vector] of Object.entries(result.sourceVectors)) {
+                // 处理可能包含索引的维度键（如：theme_1）
+                const dimensionId = key.includes('_') ? key.split('_')[0] : key;
                 const dimension = InfoSpace.getDimension(dimensionId);
                 if (dimension) {
                     content += `- ${dimension.name}: ${vector.name}\n`;
