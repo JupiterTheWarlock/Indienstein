@@ -555,6 +555,18 @@ class InfoSpaceModule {
      */
     selectVector(vectorId) {
         // 这里可以与Indienstein模块交互，将选中的向量添加到生成列表
+        const dimension = InfoSpace.dimensions[this.selectedDimension];
+        const vector = dimension.vectors.find(v => (v.id || v.name) === vectorId);
+        
+        if (vector) {
+            this.showNotification(`已选择向量: ${vector.name}`, 'success');
+            console.log('选中的向量:', vector);
+            
+            // 这里可以触发自定义事件，让其他模块监听
+            window.dispatchEvent(new CustomEvent('vectorSelected', {
+                detail: { vector, dimension: this.selectedDimension }
+            }));
+        }
         console.log('选择向量:', vectorId);
         this.showNotification(`向量 "${vectorId}" 已选择`, 'success');
     }

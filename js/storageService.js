@@ -104,6 +104,22 @@ class StorageService {
     }
 
     /**
+     * 获取历史记录（用于Dashboard模块）
+     * @returns {Array} 历史记录数组
+     */
+    getHistory() {
+        // 获取所有灵感作为历史记录
+        const inspirations = this.getInspirations();
+        
+        // 按时间排序（最新的在前）
+        return inspirations.sort((a, b) => {
+            const timeA = new Date(a.createdTime || a.timestamp || 0);
+            const timeB = new Date(b.createdTime || b.timestamp || 0);
+            return timeB - timeA;
+        });
+    }
+
+    /**
      * 根据ID获取灵感
      * @param {string} id 灵感ID
      * @returns {Object|null} 灵感对象或null
