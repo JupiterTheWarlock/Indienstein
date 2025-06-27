@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indienstein - AI游戏灵感生成器</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <header class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-dice-5"></i> Indienstein
+                </a>
+                <div class="d-flex">
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" id="formatToggle" checked>
+                        <label class="form-check-label text-light" for="formatToggle">长文本模式</label>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                        <i class="bi bi-gear"></i> 设置
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="row mt-3">
+            <!-- 左侧面板：维度选择 -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">维度选择</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">全选</button>
+                            <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">取消全选</button>
+                        </div>
+                        <div id="dimensionsList" class="list-group">
+                            <!-- 维度列表将通过JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 中央区域：生成结果 -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">灵感生成</h5>
+                        <div>
+                            <button id="randomBtn" class="btn btn-sm btn-light me-2">
+                                <i class="bi bi-shuffle"></i> 随机选择
+                            </button>
+                            <button id="generateBtn" class="btn btn-sm btn-warning" disabled>
+                                <i class="bi bi-stars"></i> 生成灵感
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="selectedVectors" class="mb-3">
+                            <h6>已选择的元素：</h6>
+                            <div id="vectorsContainer" class="d-flex flex-wrap gap-2">
+                                <div class="text-muted">点击"随机选择"按钮开始...</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="userPrompt" class="form-label">自定义提示词（可选）：</label>
+                            <textarea id="userPrompt" class="form-control" rows="2" placeholder="添加额外的要求或方向..."></textarea>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">生成结果</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="resultContent" class="border rounded p-3 min-height-200">
+                                    <div class="text-center text-muted">生成的内容将显示在这里</div>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-light d-flex justify-content-end">
+                                <button id="exportBtn" class="btn btn-sm btn-outline-secondary" disabled>
+                                    <i class="bi bi-download"></i> 导出
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧面板：批量生成 -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">批量生成</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="batchCount" class="form-label">生成数量：</label>
+                            <input type="number" id="batchCount" class="form-control" min="1" max="10" value="3">
+                        </div>
+                        <div class="mb-3">
+                            <label for="batchDelay" class="form-label">请求间隔（秒）：</label>
+                            <input type="number" id="batchDelay" class="form-control" min="0" max="10" value="1">
+                        </div>
+                        <button id="batchGenerateBtn" class="btn btn-primary w-100">
+                            <i class="bi bi-lightning"></i> 开始批量生成
+                        </button>
+                        
+                        <div id="batchProgress" class="progress mt-3 d-none">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        
+                        <div id="batchResults" class="mt-3">
+                            <!-- 批量生成结果将显示在这里 -->
+                        </div>
+                        
+                        <button id="exportBatchBtn" class="btn btn-sm btn-outline-secondary w-100 mt-3 d-none">
+                            <i class="bi bi-download"></i> 导出所有结果
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel">设置</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="providerSelect" class="form-label">AI 供应商：</label>
+                        <select id="providerSelect" class="form-select">
+                            <option value="siliconflow">硅基流动</option>
+                            <option value="deepseek">深度求索</option>
+                            <option value="zhipu">智谱</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modelSelect" class="form-label">模型：</label>
+                        <select id="modelSelect" class="form-select">
+                            <!-- 模型选项将根据选择的供应商动态生成 -->
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="apiKeyInput" class="form-label">API Key：</label>
+                        <input type="password" id="apiKeyInput" class="form-control" placeholder="输入您的 API Key">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 历史记录模态框 -->
+    <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="historyModalLabel">历史记录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="historyList" class="list-group">
+                        <!-- 历史记录将通过JS动态生成 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量生成结果模态框 -->
+    <div class="modal fade" id="batchResultModal" tabindex="-1" aria-labelledby="batchResultModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchResultModalLabel">批量生成结果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="batchResultContent">
+                        <!-- 批量生成详细结果将显示在这里 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" id="exportCurrentBatchBtn">导出当前结果</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/infoSpace.js"></script>
+    <script src="js/aiService.js"></script>
+    <script src="js/indiensteinService.js"></script>
+    <script src="js/storageService.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
