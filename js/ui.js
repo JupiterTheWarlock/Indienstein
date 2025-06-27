@@ -375,38 +375,57 @@ const UI = {
             return;
         }
         
-        // 创建包含所有结果的导出内容
-        let content = `# 游戏灵感集合\n\n`;
-        content += `## 导出时间\n${new Date().toLocaleString()}\n\n`;
-        content += `## 总共生成了 ${this.state.allGeneratedResults.length} 个灵感\n\n`;
+        // 获取导出详情设置
+        const exportDetail = document.getElementById('exportDetailCheckbox').checked;
         
-        this.state.allGeneratedResults.forEach((result, index) => {
-            console.log(`导出第 ${index + 1} 个结果:`, result); // 调试信息
+        // 创建包含所有结果的导出内容
+        let content = '';
+        
+        if (exportDetail) {
+            // 导出详情模式 - 包含完整信息
+            content = `# 游戏灵感集合\n\n`;
+            content += `## 导出时间\n${new Date().toLocaleString()}\n\n`;
+            content += `## 总共生成了 ${this.state.allGeneratedResults.length} 个灵感\n\n`;
             
-            content += `---\n\n`;
-            content += `### 灵感 ${index + 1}\n\n`;
-            content += `**生成时间**: ${new Date(result.createdTime).toLocaleString()}\n\n`;
-            
-            content += `**选择的元素**:\n`;
-            for (const [key, vector] of Object.entries(result.sourceVectors)) {
-                // 处理可能包含索引的维度键（如：theme_1）
-                const dimensionId = key.includes('_') ? key.split('_')[0] : key;
-                const dimension = InfoSpace.getDimension(dimensionId);
-                if (dimension) {
-                    content += `- ${dimension.name}: ${vector.name}\n`;
-                    if (vector.description) {
-                        content += `  ${vector.description}\n`;
+            this.state.allGeneratedResults.forEach((result, index) => {
+                console.log(`导出第 ${index + 1} 个结果:`, result); // 调试信息
+                
+                content += `---\n\n`;
+                content += `### 灵感 ${index + 1}\n\n`;
+                content += `**生成时间**: ${new Date(result.createdTime).toLocaleString()}\n\n`;
+                
+                content += `**选择的元素**:\n`;
+                for (const [key, vector] of Object.entries(result.sourceVectors)) {
+                    // 处理可能包含索引的维度键（如：theme_1）
+                    const dimensionId = key.includes('_') ? key.split('_')[0] : key;
+                    const dimension = InfoSpace.getDimension(dimensionId);
+                    if (dimension) {
+                        content += `- ${dimension.name}: ${vector.name}\n`;
+                        if (vector.description) {
+                            content += `  ${vector.description}\n`;
+                        }
                     }
                 }
-            }
-            content += '\n';
+                content += '\n';
+                
+                if (result.userPrompt) {
+                    content += `**用户提示**: ${result.userPrompt}\n\n`;
+                }
+                
+                content += `**灵感内容**:\n${result.content || '内容为空'}\n\n`;
+            });
+        } else {
+            // 仅导出灵感模式 - 只包含灵感内容
+            content = `# 游戏灵感集合\n\n`;
             
-            if (result.userPrompt) {
-                content += `**用户提示**: ${result.userPrompt}\n\n`;
-            }
-            
-            content += `**灵感内容**:\n${result.content || '内容为空'}\n\n`;
-        });
+            this.state.allGeneratedResults.forEach((result, index) => {
+                content += `## 灵感 ${index + 1}\n\n`;
+                content += `${result.content || '内容为空'}\n\n`;
+                if (index < this.state.allGeneratedResults.length - 1) {
+                    content += `---\n\n`;
+                }
+            });
+        }
         
         console.log('最终导出内容:', content); // 调试信息
         
@@ -414,10 +433,14 @@ const UI = {
         const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
         const exportLink = document.createElement('a');
         exportLink.setAttribute('href', dataUri);
-        exportLink.setAttribute('download', `游戏灵感集合_${new Date().toISOString().slice(0, 10)}.txt`);
+        const fileName = exportDetail ? 
+            `游戏灵感集合_详情_${new Date().toISOString().slice(0, 10)}.txt` : 
+            `游戏灵感集合_${new Date().toISOString().slice(0, 10)}.txt`;
+        exportLink.setAttribute('download', fileName);
         exportLink.click();
         
-        this.showMessage(`已导出 ${this.state.allGeneratedResults.length} 个灵感`, 'success');
+        const exportType = exportDetail ? '详细' : '简化';
+        this.showMessage(`已导出 ${this.state.allGeneratedResults.length} 个灵感（${exportType}模式）`, 'success');
     },
     
     /**
