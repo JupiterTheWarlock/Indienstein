@@ -536,4 +536,7 @@ class DashboardModule {
 }
 
 // 创建全局实例
-window.dashboard = new DashboardModule(); 
+window.dashboard = new DashboardModule();
+
+// 导出类供测试使用
+window.Dashboard = DashboardModule; 

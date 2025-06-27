@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indienstein 初始化测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+        .code {
+            background: #f1f1f1;
+            padding: 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐱 Indienstein v2.0 初始化测试</h1>
+    
+    <div id="testResults">
+        <div class="test-item">
+            <strong>正在运行测试...</strong>
+        </div>
+    </div>
+
+    <!-- 引入JavaScript -->
+    <script src="js/storageService.js"></script>
+    <script src="js/aiService.js"></script>
+    <script src="js/infoSpace.js"></script>
+    <script src="js/indiensteinService.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/infoSpaceModule.js"></script>
+    <script src="js/tabManager.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+    
+    <script>
+        // 测试函数
+        function runTests() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '';
+            
+            const tests = [
+                {
+                    name: 'StorageService 类加载',
+                    test: () => typeof StorageService === 'function'
+                },
+                {
+                    name: 'StorageService 实例化',
+                    test: () => {
+                        const storage = new StorageService();
+                        return storage && typeof storage.getSettings === 'function';
+                    }
+                },
+                {
+                    name: 'AIService 静态类加载',
+                    test: () => typeof AIService === 'function' && typeof AIService.init === 'function'
+                },
+                {
+                    name: 'InfoSpace 静态类加载',
+                    test: () => typeof InfoSpace === 'function' && typeof InfoSpace.getAllDimensions === 'function'
+                },
+                {
+                    name: 'InfoSpace 初始化',
+                    test: () => {
+                        InfoSpace.init();
+                        const dimensions = InfoSpace.getAllDimensions();
+                        return Array.isArray(dimensions) && dimensions.length > 0;
+                    }
+                },
+                {
+                    name: 'IndiensteinService 静态类加载',
+                    test: () => typeof IndiensteinService === 'function' && typeof IndiensteinService.selectFromAllDimensions === 'function'
+                },
+                {
+                    name: 'UIManager 类加载',
+                    test: () => typeof UIManager === 'function' && typeof UI === 'function'
+                },
+                {
+                    name: 'TabManager 类加载',
+                    test: () => typeof TabManager === 'function'
+                },
+                {
+                    name: 'Dashboard 模块加载',
+                    test: () => typeof Dashboard === 'function'
+                },
+                {
+                    name: 'InfoSpaceModule 模块加载',
+                    test: () => typeof InfoSpaceModule === 'function'
+                },
+                {
+                    name: '随机向量选择测试',
+                    test: () => {
+                        const vectors = IndiensteinService.selectFromAllDimensions();
+                        return typeof vectors === 'object' && Object.keys(vectors).length > 0;
+                    }
+                },
+                {
+                    name: 'Main 应用类加载',
+                    test: () => typeof Main === 'function'
+                }
+            ];
+            
+            let passedCount = 0;
+            let totalCount = tests.length;
+            
+            tests.forEach(test => {
+                const div = document.createElement('div');
+                div.className = 'test-item';
+                
+                try {
+                    const result = test.test();
+                    if (result) {
+                        div.className += ' success';
+                        div.innerHTML = `✅ <strong>${test.name}</strong> - 通过`;
+                        passedCount++;
+                    } else {
+                        div.className += ' error';
+                        div.innerHTML = `❌ <strong>${test.name}</strong> - 失败（返回值为false）`;
+                    }
+                } catch (error) {
+                    div.className += ' error';
+                    div.innerHTML = `❌ <strong>${test.name}</strong> - 错误: <span class="code">${error.message}</span>`;
+                }
+                
+                results.appendChild(div);
+            });
+            
+            // 添加总结
+            const summary = document.createElement('div');
+            summary.className = 'test-item';
+            if (passedCount === totalCount) {
+                summary.className += ' success';
+                summary.innerHTML = `🎉 <strong>所有测试通过！</strong> (${passedCount}/${totalCount})`;
+            } else {
+                summary.className += ' warning';
+                summary.innerHTML = `⚠️ <strong>部分测试失败</strong> - 通过: ${passedCount}/${totalCount}`;
+            }
+            
+            results.appendChild(summary);
+            
+            // 尝试初始化Main应用
+            if (passedCount >= totalCount - 2) { // 允许少量非关键测试失败
+                const initDiv = document.createElement('div');
+                initDiv.className = 'test-item';
+                
+                try {
+                    const app = new Main();
+                    initDiv.className += ' success';
+                    initDiv.innerHTML = `🚀 <strong>Main应用初始化</strong> - 成功！可以尝试打开主页面了`;
+                } catch (error) {
+                    initDiv.className += ' error';
+                    initDiv.innerHTML = `💥 <strong>Main应用初始化</strong> - 失败: <span class="code">${error.message}</span>`;
+                }
+                
+                results.appendChild(initDiv);
+            }
+        }
+        
+        // 页面加载完成后运行测试
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runTests, 100); // 稍微延迟以确保所有脚本都加载完成
+        });
+    </script>
+</body>
+</html> 

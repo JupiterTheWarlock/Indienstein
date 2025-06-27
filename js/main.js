@@ -384,8 +384,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
+// 确保app变量被正确初始化
+if (!app) {
+    app = new App();
+}
+
 // 导出全局变量供调试使用
 window.app = app;
 window.initApp = initApp;
+
+// 导出类供测试使用
+window.Main = App;
 
 console.log('Main.js v2.0 加载完成'); 
