@@ -46,6 +46,8 @@ const UI = {
         // 新的维度选择
         this.elements.dimensionSelect = document.getElementById('dimensionSelect');
         this.elements.addDimensionBtn = document.getElementById('addDimensionBtn');
+        this.elements.randomDimensionCount = document.getElementById('randomDimensionCount');
+        this.elements.randomDimensionBtn = document.getElementById('randomDimensionBtn');
         this.elements.selectedDimensionsContainer = document.getElementById('selectedDimensionsContainer');
         
         // 生成区域
@@ -80,7 +82,7 @@ const UI = {
         
         // 检查关键元素是否存在
         const requiredElements = [
-            'dimensionSelect', 'addDimensionBtn', 'selectedDimensionsContainer', 'generateBtn', 'resultContent', 'batchProgress',
+            'dimensionSelect', 'addDimensionBtn', 'randomDimensionCount', 'randomDimensionBtn', 'selectedDimensionsContainer', 'generateBtn', 'resultContent', 'batchProgress',
             'providerSelect', 'modelSelect', 'temperatureInput', 'maxTokensInput'
         ];
         
@@ -111,6 +113,7 @@ const UI = {
         // 维度选择
         this.elements.dimensionSelect.addEventListener('change', () => this.updateAddDimensionButton());
         this.elements.addDimensionBtn.addEventListener('click', () => this.addDimension());
+        this.elements.randomDimensionBtn.addEventListener('click', () => this.addRandomDimensions());
         
         // 生成区域
         this.elements.generateBtn.addEventListener('click', () => this.generateInspiration());
@@ -164,6 +167,9 @@ const UI = {
             option.textContent = `${dimension.name} (${dimension.vectors.length}个元素)`;
             dimensionSelect.appendChild(option);
         });
+        
+        // 设置随机维度数量输入框的提示信息
+        this.elements.randomDimensionCount.setAttribute('title', '随机选择的维度数量（≤6个不重复，≥6个可重复）');
         
         console.log('UI: 维度选择下拉框设置完成');
     },
@@ -254,6 +260,60 @@ const UI = {
             this.updateSelectedDimensionsDisplay();
             console.log('已移除维度:', dimensionId, '当前选中维度:', this.state.selectedDimensions);
         }
+    },
+    
+    /**
+     * 随机添加维度
+     */
+    addRandomDimensions() {
+        const count = parseInt(this.elements.randomDimensionCount.value) || 3;
+        const allDimensions = InfoSpace.getAllDimensions();
+        
+        if (count <= 0) {
+            this.showMessage('随机维度数量必须大于0喵！', 'warning');
+            return;
+        }
+        
+        let selectedDimensions = [];
+        let dimensionNames = [];
+        
+        if (count <= 6) {
+            // 数量<=6：获取不同的维度（不重复）
+            if (count > allDimensions.length) {
+                this.showMessage(`要获取${count}个不同维度，但总共只有${allDimensions.length}个维度喵！将获取所有维度喵~`, 'warning');
+                selectedDimensions = [...allDimensions];
+            } else {
+                // 随机选择n个不同的维度
+                const shuffled = [...allDimensions].sort(() => 0.5 - Math.random());
+                selectedDimensions = shuffled.slice(0, count);
+            }
+            
+            // 添加到选中维度列表
+            selectedDimensions.forEach(dimension => {
+                this.state.selectedDimensions.push(dimension.id);
+            });
+            
+            dimensionNames = selectedDimensions.map(d => d.name);
+            this.showMessage(`已随机添加 ${selectedDimensions.length} 个不同维度：${dimensionNames.join('、')} 喵~`, 'success');
+            
+        } else {
+            // 数量>=6：完全随机（可以重复）
+            const addedDimensions = [];
+            for (let i = 0; i < count; i++) {
+                const randomIndex = Math.floor(Math.random() * allDimensions.length);
+                const selectedDimension = allDimensions[randomIndex];
+                this.state.selectedDimensions.push(selectedDimension.id);
+                addedDimensions.push(selectedDimension.name);
+            }
+            
+            dimensionNames = addedDimensions;
+            this.showMessage(`已随机添加 ${count} 个维度（可重复）：${dimensionNames.join('、')} 喵~`, 'success');
+        }
+        
+        // 更新显示
+        this.updateSelectedDimensionsDisplay();
+        
+        console.log('已随机添加维度:', dimensionNames, '当前选中维度:', this.state.selectedDimensions);
     },
 
     /**

@@ -179,6 +179,12 @@
                                                 <button id="addDimensionBtn" class="btn btn-outline-primary btn-sm" disabled>
                                                     <i class="bi bi-plus"></i> 添加
                                                 </button>
+                                                <div class="d-flex gap-1">
+                                                    <input type="number" id="randomDimensionCount" class="form-control form-control-sm" min="1" value="3" style="width: 60px;" placeholder="数量" title="随机选择的维度数量（≤6个不重复，≥6个可重复）">
+                                                    <button id="randomDimensionBtn" class="btn btn-outline-success btn-sm">
+                                                        <i class="bi bi-shuffle"></i> 随机维度
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div id="selectedDimensionsContainer" class="d-flex flex-wrap gap-2">
                                                 <!-- 已选择的维度将在这里显示 -->
