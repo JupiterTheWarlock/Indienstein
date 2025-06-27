@@ -10,41 +10,139 @@
 </head>
 <body>
     <div class="container-fluid">
+        <!-- 导航栏 -->
         <header class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
                 <a class="navbar-brand" href="#">
                     <i class="bi bi-dice-5"></i> Indienstein
                 </a>
                 <div class="d-flex">
-                    <div class="form-check form-switch me-3">
+                    <div class="form-check form-switch me-3" id="formatToggleContainer" style="display: none;">
                         <input class="form-check-input" type="checkbox" id="formatToggle" checked>
                         <label class="form-check-label text-light" for="formatToggle">长文本模式</label>
                     </div>
-                    <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#settingsModal">
-                        <i class="bi bi-gear"></i> 设置
-                    </button>
                 </div>
             </div>
         </header>
 
+        <!-- 左侧Tab布局 -->
         <div class="row mt-3">
-            <!-- 左侧面板：维度选择 -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0">维度选择</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">全选</button>
-                            <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">取消全选</button>
-                        </div>
-                        <div id="dimensionsList" class="list-group">
-                            <!-- 维度列表将通过JS动态生成 -->
-                        </div>
-                    </div>
+            <!-- 左侧导航 -->
+            <div class="col-md-2">
+                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active" id="v-pills-overview-tab" data-bs-toggle="pill" data-bs-target="#v-pills-overview" type="button" role="tab" aria-controls="v-pills-overview" aria-selected="true">
+                        <i class="bi bi-house"></i><br>总览
+                    </button>
+                    <button class="nav-link" id="v-pills-indienstein-tab" data-bs-toggle="pill" data-bs-target="#v-pills-indienstein" type="button" role="tab" aria-controls="v-pills-indienstein" aria-selected="false">
+                        <i class="bi bi-stars"></i><br>Indienstein
+                    </button>
+                    <button class="nav-link" id="v-pills-infospace-tab" data-bs-toggle="pill" data-bs-target="#v-pills-infospace" type="button" role="tab" aria-controls="v-pills-infospace" aria-selected="false">
+                        <i class="bi bi-diagram-3"></i><br>信息空间
+                    </button>
                 </div>
             </div>
+            
+            <!-- 右侧内容区域 -->
+            <div class="col-md-10">
+                <div class="tab-content" id="v-pills-tabContent">
+                    <!-- 总览页面 -->
+                    <div class="tab-pane fade show active" id="v-pills-overview" role="tabpanel" aria-labelledby="v-pills-overview-tab">
+                        <div class="row">
+                            <div class="col-lg-10 mx-auto">
+                                <!-- API Key管理卡片 -->
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="bi bi-key"></i> AI 供应商 API Key 管理
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row" id="providersContainer">
+                                            <!-- API Key 设置将通过 JS 动态生成 -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 信息空间统计卡片 -->
+                                <div class="card mt-3">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="card-title mb-0">
+                                            <i class="bi bi-diagram-3"></i> 信息空间概览
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="infoSpaceOverview">
+                                            <!-- 信息空间概览将通过 JS 动态生成 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indienstein 页面 -->
+                    <div class="tab-pane fade" id="v-pills-indienstein" role="tabpanel" aria-labelledby="v-pills-indienstein-tab">
+                        <!-- AI配置区域 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-robot"></i> 当前生成配置
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="mb-2">
+                                            <label for="providerSelect" class="form-label">AI供应商：</label>
+                                            <select id="providerSelect" class="form-select form-select-sm">
+                                                <option value="siliconflow">硅基流动</option>
+                                                <option value="deepseek">深度求索</option>
+                                                <option value="zhipu">智谱</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-2">
+                                            <label for="modelSelect" class="form-label">模型：</label>
+                                            <select id="modelSelect" class="form-select form-select-sm">
+                                                <!-- 模型选项将根据选择的供应商动态生成 -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-2">
+                                            <label for="temperatureInput" class="form-label">Temperature：<span id="temperatureValue" class="fw-bold">0.7</span></label>
+                                            <input type="range" id="temperatureInput" class="form-range" min="0" max="1" step="0.1" value="0.7">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="mb-2">
+                                            <label for="maxTokensInput" class="form-label">Max Tokens：</label>
+                                            <input type="number" id="maxTokensInput" class="form-control form-control-sm" min="100" max="4000" value="2000">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- 左侧面板：维度选择 -->
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="card-title mb-0">维度选择</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <button id="selectAllBtn" class="btn btn-sm btn-outline-primary">全选</button>
+                                            <button id="deselectAllBtn" class="btn btn-sm btn-outline-secondary">取消全选</button>
+                                        </div>
+                                        <div id="dimensionsList" class="list-group">
+                                            <!-- 维度列表将通过JS动态生成 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
             <!-- 中央区域：生成结果 -->
             <div class="col-md-6">
@@ -123,44 +221,49 @@
                             <i class="bi bi-download"></i> 导出所有结果
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- 设置模态框 -->
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="settingsModalLabel">设置</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="providerSelect" class="form-label">AI 供应商：</label>
-                        <select id="providerSelect" class="form-select">
-                            <option value="siliconflow">硅基流动</option>
-                            <option value="deepseek">深度求索</option>
-                            <option value="zhipu">智谱</option>
-                        </select>
+                    <!-- 信息空间页面 -->
+                    <div class="tab-pane fade" id="v-pills-infospace" role="tabpanel" aria-labelledby="v-pills-infospace-tab">
+                        <div class="row">
+                            <!-- 左侧维度列表 -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header bg-dark text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="bi bi-list-ul"></i> 信息维度列表
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div id="dimensionsListInfo" class="list-group list-group-flush">
+                                            <!-- 维度列表将通过JS动态生成 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 右侧维度详情 -->
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="card-title mb-0">
+                                            <i class="bi bi-info-circle"></i> 维度详情
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="dimensionDetailContent">
+                                            <div class="text-center text-muted py-5">
+                                                <i class="bi bi-arrow-left fs-1"></i>
+                                                <p class="mt-3">请从左侧选择一个维度以查看详情</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="modelSelect" class="form-label">模型：</label>
-                        <select id="modelSelect" class="form-select">
-                            <!-- 模型选项将根据选择的供应商动态生成 -->
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="apiKeyInput" class="form-label">API Key：</label>
-                        <input type="password" id="apiKeyInput" class="form-control" placeholder="输入您的 API Key">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存</button>
                 </div>
             </div>
         </div>

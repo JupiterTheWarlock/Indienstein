@@ -8,10 +8,16 @@ const AIService = {
     currentSettings: {
         provider: 'siliconflow',
         model: 'deepseek-ai/DeepSeek-V2.5',
-        apiKey: '',
         temperature: 0.7,
         maxTokens: 2000,
         streamOutput: true
+    },
+    
+    // 每个供应商的API Key（独立存储）
+    apiKeys: {
+        siliconflow: '',
+        deepseek: '',
+        zhipu: ''
     },
     
     // 供应商配置
@@ -54,6 +60,7 @@ const AIService = {
      */
     init() {
         this.loadSettings();
+        this.loadApiKeys();
         console.log('AIService: 初始化完成');
     },
     
@@ -74,10 +81,33 @@ const AIService = {
     },
     
     /**
+     * 加载API Keys
+     */
+    loadApiKeys() {
+        const savedApiKeys = localStorage.getItem('indienstein_api_keys');
+        if (savedApiKeys) {
+            try {
+                const apiKeys = JSON.parse(savedApiKeys);
+                this.apiKeys = { ...this.apiKeys, ...apiKeys };
+                console.log('AIService: 已加载API Keys');
+            } catch (error) {
+                console.error('AIService: 加载API Keys失败', error);
+            }
+        }
+    },
+    
+    /**
      * 保存设置
      */
     saveSettings() {
         localStorage.setItem('indienstein_ai_settings', JSON.stringify(this.currentSettings));
+    },
+    
+    /**
+     * 保存API Keys
+     */
+    saveApiKeys() {
+        localStorage.setItem('indienstein_api_keys', JSON.stringify(this.apiKeys));
     },
     
     /**
@@ -87,6 +117,54 @@ const AIService = {
     updateSettings(settings) {
         this.currentSettings = { ...this.currentSettings, ...settings };
         this.saveSettings();
+    },
+    
+    /**
+     * 更新API Key
+     * @param {string} provider 供应商ID
+     * @param {string} apiKey 新的API Key
+     */
+    updateApiKey(provider, apiKey) {
+        if (this.providers[provider]) {
+            this.apiKeys[provider] = apiKey;
+            this.saveApiKeys();
+            console.log(`AIService: 已更新 ${provider} 的API Key`);
+        } else {
+            console.error(`AIService: 未知的供应商 ${provider}`);
+        }
+    },
+    
+    /**
+     * 获取指定供应商的API Key
+     * @param {string} provider 供应商ID
+     * @returns {string} API Key
+     */
+    getApiKey(provider) {
+        return this.apiKeys[provider] || '';
+    },
+    
+    /**
+     * 获取当前供应商的API Key
+     * @returns {string} 当前供应商的API Key
+     */
+    getCurrentApiKey() {
+        return this.getApiKey(this.currentSettings.provider);
+    },
+    
+    /**
+     * 获取所有供应商的API Key状态
+     * @returns {Object} 各供应商的API Key状态
+     */
+    getApiKeysStatus() {
+        const status = {};
+        Object.keys(this.providers).forEach(providerId => {
+            status[providerId] = {
+                name: this.providers[providerId].name,
+                hasApiKey: !!this.apiKeys[providerId],
+                apiKey: this.apiKeys[providerId] || ''
+            };
+        });
+        return status;
     },
     
     /**
@@ -122,7 +200,7 @@ const AIService = {
     getRequestHeaders() {
         return {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.currentSettings.apiKey}`
+            'Authorization': `Bearer ${this.getCurrentApiKey()}`
         };
     },
     

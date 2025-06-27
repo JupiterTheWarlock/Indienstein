@@ -25,6 +25,9 @@ const UI = {
         this.cacheElements();
         this.bindEvents();
         this.setupDimensionsList();
+        this.setupOverviewPage();
+        this.setupInfoSpacePage();
+        this.loadIndiensteinSettings(); // 加载Indienstein页面的临时设置
         this.updateGenerateButton();
     },
     
@@ -32,6 +35,12 @@ const UI = {
      * 缓存DOM元素
      */
     cacheElements() {
+        // Tab 相关
+        this.elements.overviewTab = document.getElementById('v-pills-overview-tab');
+        this.elements.indiensteinTab = document.getElementById('v-pills-indienstein-tab');
+        this.elements.infospaceTab = document.getElementById('v-pills-infospace-tab');
+        this.elements.formatToggleContainer = document.getElementById('formatToggleContainer');
+        
         // 维度选择
         this.elements.dimensionsList = document.getElementById('dimensionsList');
         this.elements.selectAllBtn = document.getElementById('selectAllBtn');
@@ -53,12 +62,20 @@ const UI = {
         this.elements.batchResults = document.getElementById('batchResults');
         this.elements.exportBatchBtn = document.getElementById('exportBatchBtn');
         
-        // 模态框
-        this.elements.settingsModal = document.getElementById('settingsModal');
+        // 总览页面
+        this.elements.providersContainer = document.getElementById('providersContainer');
+        this.elements.infoSpaceOverview = document.getElementById('infoSpaceOverview');
+        
+        // Indienstein页面AI配置
         this.elements.providerSelect = document.getElementById('providerSelect');
         this.elements.modelSelect = document.getElementById('modelSelect');
-        this.elements.apiKeyInput = document.getElementById('apiKeyInput');
-        this.elements.saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        this.elements.temperatureInput = document.getElementById('temperatureInput');
+        this.elements.temperatureValue = document.getElementById('temperatureValue');
+        this.elements.maxTokensInput = document.getElementById('maxTokensInput');
+        
+        // 信息空间页面
+        this.elements.dimensionsListInfo = document.getElementById('dimensionsListInfo');
+        this.elements.dimensionDetailContent = document.getElementById('dimensionDetailContent');
         
         // 格式切换
         this.elements.formatToggle = document.getElementById('formatToggle');
@@ -68,6 +85,20 @@ const UI = {
      * 绑定事件
      */
     bindEvents() {
+        // Tab 切换
+        this.elements.indiensteinTab.addEventListener('shown.bs.tab', () => {
+            this.elements.formatToggleContainer.style.display = 'block';
+            this.loadIndiensteinSettings(); // 每次切换到Indienstein页面时重新加载设置
+        });
+        
+        this.elements.overviewTab.addEventListener('shown.bs.tab', () => {
+            this.elements.formatToggleContainer.style.display = 'none';
+        });
+        
+        this.elements.infospaceTab.addEventListener('shown.bs.tab', () => {
+            this.elements.formatToggleContainer.style.display = 'none';
+        });
+        
         // 维度选择
         this.elements.selectAllBtn.addEventListener('click', () => this.selectAllDimensions());
         this.elements.deselectAllBtn.addEventListener('click', () => this.deselectAllDimensions());
@@ -81,9 +112,22 @@ const UI = {
         this.elements.batchGenerateBtn.addEventListener('click', () => this.startBatchGeneration());
         this.elements.exportBatchBtn.addEventListener('click', () => this.exportBatchInspirations());
         
-        // 设置
-        this.elements.providerSelect.addEventListener('change', () => this.updateModelOptions());
-        this.elements.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
+        // Indienstein页面AI配置设置（临时的，不保存）
+        this.elements.providerSelect.addEventListener('change', () => {
+            this.updateModelOptions();
+            // 临时更新设置但不保存
+            AIService.currentSettings.provider = this.elements.providerSelect.value;
+        });
+        this.elements.modelSelect.addEventListener('change', () => {
+            AIService.currentSettings.model = this.elements.modelSelect.value;
+        });
+        this.elements.temperatureInput.addEventListener('input', () => {
+            this.elements.temperatureValue.textContent = this.elements.temperatureInput.value;
+            AIService.currentSettings.temperature = parseFloat(this.elements.temperatureInput.value);
+        });
+        this.elements.maxTokensInput.addEventListener('input', () => {
+            AIService.currentSettings.maxTokens = parseInt(this.elements.maxTokensInput.value);
+        });
         
         // 格式切换
         this.elements.formatToggle.addEventListener('change', () => this.toggleFormat());
@@ -556,24 +600,11 @@ const UI = {
     },
     
     /**
-     * 保存设置
+     * 保存设置（废弃 - 已由总览页面取代）
      */
     saveSettings() {
-        const provider = this.elements.providerSelect.value;
-        const model = this.elements.modelSelect.value;
-        const apiKey = this.elements.apiKeyInput.value;
-        
-        AIService.updateSettings({
-            provider: provider,
-            model: model,
-            apiKey: apiKey
-        });
-        
-        // 关闭模态框
-        const modal = bootstrap.Modal.getInstance(this.elements.settingsModal);
-        modal.hide();
-        
-        this.showMessage('设置已保存', 'success');
+        // 这个函数已被总览页面的saveAllSettings替代
+        console.warn('saveSettings 已废弃，请使用 saveAllSettings');
     },
     
     /**
@@ -581,12 +612,13 @@ const UI = {
      * @returns {boolean} 是否设置有效
      */
     checkApiSettings() {
-        if (!AIService.currentSettings.apiKey) {
-            this.showMessage('请先设置API Key', 'warning');
+        const currentApiKey = AIService.getCurrentApiKey();
+        if (!currentApiKey) {
+            this.showMessage(`请先在总览页面设置 ${AIService.providers[AIService.currentSettings.provider].name} 的 API Key`, 'warning');
             
-            // 打开设置模态框
-            const modal = new bootstrap.Modal(this.elements.settingsModal);
-            modal.show();
+            // 切换到总览标签页
+            const overviewTab = new bootstrap.Tab(this.elements.overviewTab);
+            overviewTab.show();
             
             return false;
         }
@@ -642,5 +674,239 @@ const UI = {
         toast.addEventListener('hidden.bs.toast', () => {
             toast.remove();
         });
+    },
+    
+    /**
+     * 设置总览页面
+     */
+    setupOverviewPage() {
+        this.generateProvidersContainer();
+        this.generateInfoSpaceOverview();
+    },
+    
+    /**
+     * 生成供应商容器
+     */
+    generateProvidersContainer() {
+        const container = this.elements.providersContainer;
+        const apiKeysStatus = AIService.getApiKeysStatus();
+        
+        container.innerHTML = '';
+        
+        Object.keys(apiKeysStatus).forEach(providerId => {
+            const provider = apiKeysStatus[providerId];
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-3';
+            
+            col.innerHTML = `
+                <div class="card h-100 provider-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">${provider.name}</h6>
+                        <span class="badge ${provider.hasApiKey ? 'bg-success' : 'bg-secondary'}">
+                            ${provider.hasApiKey ? '已配置' : '未配置'}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                                                 <div class="mb-2">
+                             <label for="apiKey_${providerId}" class="form-label">API Key：</label>
+                             <input type="password" class="form-control api-key-input" id="apiKey_${providerId}" 
+                                    value="${provider.apiKey}" 
+                                    placeholder="请输入 ${provider.name} 的 API Key">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary w-100" onclick="UI.saveProviderApiKey('${providerId}')">
+                            <i class="bi bi-save"></i> 保存
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(col);
+        });
+    },
+    
+    /**
+     * 保存供应商API Key
+     * @param {string} providerId 供应商ID
+     */
+    saveProviderApiKey(providerId) {
+        const input = document.getElementById(`apiKey_${providerId}`);
+        const apiKey = input.value.trim();
+        
+        AIService.updateApiKey(providerId, apiKey);
+        this.generateProvidersContainer(); // 重新生成以更新状态
+        this.showMessage(`${AIService.providers[providerId].name} API Key 已保存`, 'success');
+    },
+    
+    /**
+     * 生成信息空间概览
+     */
+    generateInfoSpaceOverview() {
+        const container = this.elements.infoSpaceOverview;
+        const dimensions = InfoSpace.getAllDimensions();
+        
+        // 计算统计数据
+        const totalVectors = dimensions.reduce((sum, d) => sum + d.vectors.length, 0);
+        const avgVectors = (totalVectors / dimensions.length).toFixed(1);
+        
+        container.innerHTML = `
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-primary mb-1">${dimensions.length}</h3>
+                        <p class="mb-0 text-muted">信息维度</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-success mb-1">${totalVectors}</h3>
+                        <p class="mb-0 text-muted">信息向量</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-info mb-1">${avgVectors}</h3>
+                        <p class="mb-0 text-muted">平均向量数</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <h3 class="text-warning mb-1">${Math.pow(10, dimensions.length).toLocaleString()}</h3>
+                        <p class="mb-0 text-muted">组合可能性</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                ${dimensions.map(dimension => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">${dimension.name}</h6>
+                                <p class="card-text text-muted small">${dimension.description}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-primary">${dimension.vectors.length} 个向量</span>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="UI.switchToInfoSpace('${dimension.id}')">
+                                        查看详情
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+    
+    /**
+     * 切换到信息空间页面并显示指定维度
+     * @param {string} dimensionId 维度ID
+     */
+    switchToInfoSpace(dimensionId) {
+        // 切换到信息空间标签页
+        const infospaceTab = new bootstrap.Tab(this.elements.infospaceTab);
+        infospaceTab.show();
+        
+        // 延迟一下以确保页面切换完成
+        setTimeout(() => {
+            this.showDimensionDetail(dimensionId);
+        }, 100);
+    },
+    
+    /**
+     * 加载Indienstein页面设置（不保存的临时设置）
+     */
+    loadIndiensteinSettings() {
+        const settings = AIService.currentSettings;
+        
+        this.elements.providerSelect.value = settings.provider;
+        this.elements.temperatureInput.value = settings.temperature;
+        this.elements.temperatureValue.textContent = settings.temperature;
+        this.elements.maxTokensInput.value = settings.maxTokens;
+        
+        this.updateModelOptions();
+    },
+    
+    /**
+     * 设置信息空间页面
+     */
+    setupInfoSpacePage() {
+        this.generateDimensionsListInfo();
+    },
+    
+    /**
+     * 生成信息空间维度列表
+     */
+    generateDimensionsListInfo() {
+        const container = this.elements.dimensionsListInfo;
+        const dimensions = InfoSpace.getAllDimensions();
+        
+        container.innerHTML = '';
+        
+        dimensions.forEach(dimension => {
+            const item = document.createElement('a');
+            item.className = 'list-group-item list-group-item-action dimension-list-item';
+            item.href = '#';
+            item.dataset.dimensionId = dimension.id;
+            
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">${dimension.name}</h6>
+                        <small class="text-muted">${dimension.description}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">${dimension.vectors.length}</span>
+                </div>
+            `;
+            
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showDimensionDetail(dimension.id);
+            });
+            
+            container.appendChild(item);
+        });
+    },
+    
+    /**
+     * 显示维度详情
+     * @param {string} dimensionId 维度ID
+     */
+    showDimensionDetail(dimensionId) {
+        const dimension = InfoSpace.getDimension(dimensionId);
+        if (!dimension) return;
+        
+        // 更新选中状态
+        const items = this.elements.dimensionsListInfo.querySelectorAll('.dimension-list-item');
+        items.forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.dimensionId === dimensionId) {
+                item.classList.add('active');
+            }
+        });
+        
+        // 生成向量详情内容
+        const content = this.elements.dimensionDetailContent;
+        
+        const vectorsHtml = dimension.vectors.map(vector => `
+            <div class="vector-item">
+                <div class="vector-name">${vector.name}</div>
+                <div class="vector-description">${vector.description}</div>
+            </div>
+        `).join('');
+        
+        content.innerHTML = `
+            <div class="mb-4">
+                <h5 class="text-primary">${dimension.name}</h5>
+                <p class="text-muted">${dimension.description}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-primary">${dimension.vectors.length} 个信息向量</span>
+                    <small class="text-muted">权重: ${dimension.vectors[0]?.weight || 1}</small>
+                </div>
+            </div>
+            
+            <div class="vector-grid">
+                ${vectorsHtml}
+            </div>
+        `;
     }
 }; 
