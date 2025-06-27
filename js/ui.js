@@ -445,7 +445,6 @@ const UI = {
             this.state.isGenerating = false;
             this.elements.generateBtn.disabled = false;
             this.elements.generateBtn.innerHTML = '<i class="bi bi-stars"></i> 生成灵感';
-            this.updateGenerateButton();
             
             // 隐藏进度条
             setTimeout(() => {
