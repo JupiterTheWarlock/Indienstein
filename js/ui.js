@@ -57,6 +57,7 @@ const UI = {
         this.elements.vectorsContainer = document.getElementById('vectorsContainer');
         this.elements.resultContent = document.getElementById('resultContent');
         this.elements.exportBtn = document.getElementById('exportBtn');
+        this.elements.clearResultBtn = document.getElementById('clearResultBtn');
         
         // 批量生成
         this.elements.batchCount = document.getElementById('batchCount');
@@ -115,6 +116,7 @@ const UI = {
         this.elements.randomBtn.addEventListener('click', () => this.randomSelectVectors());
         this.elements.generateBtn.addEventListener('click', () => this.generateInspiration());
         this.elements.exportBtn.addEventListener('click', () => this.exportInspiration());
+        this.elements.clearResultBtn.addEventListener('click', () => this.clearResult());
         
         // 批量生成
         this.elements.batchGenerateBtn.addEventListener('click', () => this.startBatchGeneration());
@@ -308,7 +310,16 @@ const UI = {
         this.elements.generateBtn.disabled = true;
         this.elements.generateBtn.innerHTML = '<span class="loading-spinner me-1"></span> 生成中...';
         
-        this.elements.resultContent.innerHTML = '<div class="typing-animation"></div>';
+        // 检查是否是第一次生成
+        const isFirstGeneration = this.elements.resultContent.innerHTML.includes('生成的内容将显示在这里');
+        if (!isFirstGeneration) {
+            // 添加分隔线
+            this.elements.resultContent.innerHTML += '\n\n--- 新的生成 ---\n\n';
+        } else {
+            // 清空初始提示
+            this.elements.resultContent.innerHTML = '';
+        }
+        
         this.elements.resultContent.classList.add('generating');
         
         const userPrompt = this.elements.userPrompt.value;
@@ -326,19 +337,35 @@ const UI = {
                 selectedVectors,
                 userPrompt,
                 (content) => {
-                    // 实时更新内容
+                    // 实时累加内容
                     if (this.elements.resultContent.classList.contains('generating')) {
-                        this.elements.resultContent.innerHTML = content;
+                        // 移除之前的打字动画
+                        const existingAnimation = this.elements.resultContent.querySelector('.typing-animation');
+                        if (existingAnimation) {
+                            existingAnimation.remove();
+                        }
+                        // 累加新内容
+                        this.elements.resultContent.innerHTML += content;
+                        // 添加新的打字动画
                         this.elements.resultContent.innerHTML += '<span class="typing-animation"></span>';
                     } else {
                         this.elements.resultContent.innerHTML += content;
                     }
+                    // 自动滚动到底部
+                    this.elements.resultContent.scrollTop = this.elements.resultContent.scrollHeight;
                 },
                 (finalContent) => {
                     // 完成回调
                     this.elements.resultContent.classList.remove('generating');
+                    // 移除打字动画
+                    const existingAnimation = this.elements.resultContent.querySelector('.typing-animation');
+                    if (existingAnimation) {
+                        existingAnimation.remove();
+                    }
                     this.elements.exportBtn.disabled = false;
                     this.addDebugInfo('灵感生成完成', 'log');
+                    // 滚动到底部
+                    this.elements.resultContent.scrollTop = this.elements.resultContent.scrollHeight;
                 },
                 (error) => {
                     // 错误回调
@@ -375,6 +402,16 @@ const UI = {
             this.state.currentResult,
             `游戏灵感_${new Date().toISOString().slice(0, 10)}.txt`
         );
+    },
+    
+    /**
+     * 清空生成结果
+     */
+    clearResult() {
+        this.elements.resultContent.innerHTML = '<div class="text-center text-muted">生成的内容将显示在这里</div>';
+        this.elements.exportBtn.disabled = true;
+        this.state.currentResult = null;
+        this.showMessage('已清空生成历史', 'success');
     },
     
     /**
@@ -721,6 +758,13 @@ const UI = {
         const container = this.elements.providersContainer;
         const apiKeysStatus = AIService.getApiKeysStatus();
         
+        // 供应商网页链接映射
+        const providerWebsites = {
+            'siliconflow': 'https://account.siliconflow.cn/',
+            'deepseek': 'https://www.deepseek.com/',
+            'zhipu': 'https://chatglm.cn/'
+        };
+        
         container.innerHTML = '';
         
         Object.keys(apiKeysStatus).forEach(providerId => {
@@ -728,16 +772,24 @@ const UI = {
             const col = document.createElement('div');
             col.className = 'col-md-4 mb-3';
             
+            // 获取供应商网站链接
+            const websiteUrl = providerWebsites[providerId];
+            const providerNameElement = websiteUrl ? 
+                `<a href="${websiteUrl}" target="_blank" class="text-decoration-none text-primary fw-bold" title="点击访问 ${provider.name} 官网">
+                    ${provider.name} <i class="bi bi-box-arrow-up-right small"></i>
+                </a>` : 
+                `<span class="fw-bold">${provider.name}</span>`;
+            
             col.innerHTML = `
                 <div class="card h-100 provider-card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">${provider.name}</h6>
+                        <h6 class="mb-0">${providerNameElement}</h6>
                         <span class="badge ${provider.hasApiKey ? 'bg-success' : 'bg-secondary'}">
                             ${provider.hasApiKey ? '已配置' : '未配置'}
                         </span>
                     </div>
                     <div class="card-body">
-                                                 <div class="mb-2">
+                        <div class="mb-2">
                              <label for="apiKey_${providerId}" class="form-label">API Key：</label>
                              <input type="password" class="form-control api-key-input" id="apiKey_${providerId}" 
                                     value="${provider.apiKey}" 

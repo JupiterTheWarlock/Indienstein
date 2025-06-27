@@ -63,6 +63,40 @@
                                     </div>
                                 </div>
                                 
+                                <!-- 硅基流动邀请码福利卡片 -->
+                                <div class="card mt-3 border-warning">
+                                    <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #ff6b6b, #ffa500);">
+                                        <h5 class="card-title mb-0 text-dark">
+                                            <i class="bi bi-gift-fill"></i> 硅基流动邀请码福利
+                                        </h5>
+                                    </div>
+                                    <div class="card-body bg-light">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <span class="me-3 fw-bold text-primary">硅基流动邀请码：</span>
+                                                    <code class="bg-warning text-dark px-3 py-2 rounded fs-5 me-2">UZbmtVXt</code>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="navigator.clipboard.writeText('UZbmtVXt'); UI.showMessage('邀请码已复制到剪贴板！', 'success')">
+                                                        <i class="bi bi-clipboard"></i> 复制
+                                                    </button>
+                                                </div>
+                                                <p class="text-success mb-2">
+                                                    <i class="bi bi-check-circle-fill"></i> 
+                                                    <strong>填入邀请码后，您和作者都可获得2000万免费token！</strong>
+                                                </p>
+                                                <p class="text-muted small mb-0">
+                                                    使用邀请码注册硅基流动账户，享受高性价比的AI服务，支持DeepSeek、GLM、Qwen等多种优秀模型。
+                                                </p>
+                                            </div>
+                                            <div class="col-md-4 text-center">
+                                                <a href="https://cloud.siliconflow.cn/i/UZbmtVXt" target="_blank" class="btn btn-success btn-lg w-100 mb-2">
+                                                    <i class="bi bi-box-arrow-up-right"></i> 立即注册
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <!-- 信息空间统计卡片 -->
                                 <div class="card mt-3">
                                     <div class="card-header bg-success text-white">
@@ -191,11 +225,14 @@
                                 <h6 class="mb-0">生成结果</h6>
                             </div>
                             <div class="card-body">
-                                <div id="resultContent" class="border rounded p-3 min-height-200">
+                                <div id="resultContent" class="border rounded p-3 result-content-container">
                                     <div class="text-center text-muted">生成的内容将显示在这里</div>
                                 </div>
                             </div>
-                            <div class="card-footer bg-light d-flex justify-content-end">
+                            <div class="card-footer bg-light d-flex justify-content-between">
+                                <button id="clearResultBtn" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-trash"></i> 清空历史
+                                </button>
                                 <button id="exportBtn" class="btn btn-sm btn-outline-secondary" disabled>
                                     <i class="bi bi-download"></i> 导出
                                 </button>

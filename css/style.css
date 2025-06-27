@@ -249,6 +249,16 @@ body.long-format .min-height-200 {
     line-height: 1.6;
 }
 
+/* 结果容器样式 */
+.result-content-container {
+    min-height: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #fafafa;
+    border: 1px solid #e9ecef !important;
+    position: relative;
+}
+
 /* 批量生成进度条 */
 .progress {
     height: 0.5rem;
