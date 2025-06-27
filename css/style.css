@@ -332,11 +332,18 @@ body::before {
     transition: all var(--transition-normal) ease;
 }
 
+/* 修复下拉选项样式 - 确保选项是白底黑字 */
+.form-select option {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0.5rem;
+}
+
 .form-control:focus, .form-select:focus {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.95);
     border-color: var(--primary-color);
     box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
-    color: white;
+    color: #000000;
     font-weight: 600;
 }
 
@@ -408,6 +415,9 @@ body::before {
     color: var(--text-light);
     line-height: 1.8;
     font-size: 1rem;
+    white-space: pre-wrap; /* 保持换行和空格 */
+    word-wrap: break-word; /* 长单词自动换行 */
+    overflow-wrap: break-word; /* 确保内容不会溢出 */
 }
 
 /* 维度标签现代化 */

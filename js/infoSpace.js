@@ -559,5 +559,49 @@ const InfoSpace = {
             totalVectors: totalVectors,
             averageVectors: Math.round(totalVectors / dimensions.length)
         };
+    },
+
+    /**
+     * 计算选中维度的组合可能性
+     * @param {Array} selectedDimensionIds 选中的维度ID数组（可重复）
+     * @returns {number} 组合可能性数量
+     */
+    calculateCombinationPossibilities(selectedDimensionIds = []) {
+        if (selectedDimensionIds.length === 0) {
+            // 如果没有选择维度，计算所有维度的理论最大组合数
+            // 这里使用简化计算，避免数值过大
+            const dimensions = this.getAllDimensions();
+            if (dimensions.length === 0) return 0;
+            
+            // 计算所有维度向量数的乘积，但限制最大值避免溢出
+            let totalCombinations = 1;
+            for (const dimension of dimensions) {
+                totalCombinations *= dimension.vectors.length;
+                // 如果超过10亿，返回10亿+
+                if (totalCombinations > 1000000000) {
+                    return 1000000000;
+                }
+            }
+            return totalCombinations;
+        } else {
+            // 计算选中维度的组合数
+            let combinations = 1;
+            
+            // 统计每个维度被选择的次数
+            const dimensionCounts = {};
+            selectedDimensionIds.forEach(id => {
+                dimensionCounts[id] = (dimensionCounts[id] || 0) + 1;
+            });
+            
+            // 计算组合数：每个维度的向量数的幂次（幂次为该维度被选择的次数）
+            Object.entries(dimensionCounts).forEach(([dimensionId, count]) => {
+                const dimension = this.getDimension(dimensionId);
+                if (dimension) {
+                    combinations *= Math.pow(dimension.vectors.length, count);
+                }
+            });
+            
+            return combinations;
+        }
     }
 };

@@ -29,6 +29,9 @@ const UI = {
         // 确保默认配置正确
         AIService.resetTemperatureAndTokens();
         this.updateUIFromSettings();
+        
+        // 初始化组合可能性提示
+        this.updateCombinationPossibilityHint();
     },
     
     /**
@@ -236,6 +239,9 @@ const UI = {
                 container.appendChild(tag);
             }
         });
+        
+        // 更新组合可能性提示
+        this.updateCombinationPossibilityHint();
     },
     
     /**
@@ -247,6 +253,43 @@ const UI = {
             this.state.selectedDimensions.splice(index, 1);
             this.updateSelectedDimensionsDisplay();
             console.log('已移除维度:', dimensionId, '当前选中维度:', this.state.selectedDimensions);
+        }
+    },
+
+    /**
+     * 更新组合可能性提示
+     */
+    updateCombinationPossibilityHint() {
+        // 查找显示提示的元素（在生成配置区域）
+        let hintElement = document.getElementById('combinationHint');
+        if (!hintElement) {
+            // 如果不存在，创建一个
+            const configBody = document.querySelector('#v-pills-indienstein .card:last-child .card-body');
+            if (configBody) {
+                hintElement = document.createElement('div');
+                hintElement.id = 'combinationHint';
+                hintElement.className = 'mt-3 p-2 bg-info bg-opacity-10 rounded';
+                configBody.appendChild(hintElement);
+            }
+        }
+        
+        if (hintElement) {
+            if (this.state.selectedDimensions.length > 0) {
+                const combinations = InfoSpace.calculateCombinationPossibilities(this.state.selectedDimensions);
+                hintElement.innerHTML = `
+                    <small class="text-info">
+                        <i class="bi bi-lightbulb"></i> 
+                        当前选择的维度组合可能性：<strong>${combinations.toLocaleString()}</strong>
+                    </small>
+                `;
+            } else {
+                hintElement.innerHTML = `
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        选择维度后会显示组合可能性
+                    </small>
+                `;
+            }
         }
     },
     
@@ -649,7 +692,7 @@ const UI = {
                 </div>
                 <div class="col-md-3">
                     <div class="text-center p-3 bg-light rounded">
-                        <h3 class="text-warning mb-1">${Math.pow(10, dimensions.length).toLocaleString()}</h3>
+                        <h3 class="text-warning mb-1">${InfoSpace.calculateCombinationPossibilities().toLocaleString()}+</h3>
                         <p class="mb-0 text-muted">组合可能性</p>
                     </div>
                 </div>
