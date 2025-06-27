@@ -695,8 +695,7 @@ const UI = {
                             <p class="card-text text-muted small mb-0">${vector.description}</p>
                         </div>
                         <div class="text-end">
-                            <span class="badge bg-secondary">权重: ${vector.weight || 1}</span>
-                            <small class="text-muted d-block mt-1">#${index + 1}</small>
+                            <small class="text-muted">#${index + 1}</small>
                         </div>
                     </div>
                 </div>
